@@ -1,0 +1,12 @@
+class AppKeys {
+  static const String isLogin = "is_login";
+  static const String token = 'auth_token';
+  static const String clientId = 'client_id';
+  // static const String userData = 'user_data';
+  // static const String user = "user";
+  // static const String latitude = "latitude";
+  // static const String longitude = "longitude";
+  // static const String currentAddress = "currentAddress";
+  // static const String street = "street";
+  // static const String guestAddress = "guest_address";
+}

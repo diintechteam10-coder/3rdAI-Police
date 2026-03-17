@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "835096633763",
+    "project_id": "rdai-police",
+    "storage_bucket": "rdai-police.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:835096633763:android:1e21dfe05efcd2e2a3fa16",
+        "android_client_info": {
+          "package_name": "com.thirdai.policeapp"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "835096633763-sd2nsatgt67ag9e32vkfeif9t1nga5b1.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.thirdai.policeapp",
+            "certificate_hash": "e614df989c0df80e578088713f412d58253c9776"
+          }
+        },
+        {
+          "client_id": "835096633763-ph26ed8cr5chg6hcarsku9h960imfc71.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAI2ZZYhkFUbCR3YIP-9xhm7AH66kmlYPc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "835096633763-ph26ed8cr5chg6hcarsku9h960imfc71.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
