@@ -35,7 +35,7 @@ class WebSocketService {
     disconnect(); // ensure clean state
 
     final uri = Uri.parse(
-      'wss://threerdai-backend-5nvu.onrender.com/api/voice/agent?token=$token',
+      'wss://stage.3rdai.co/api/voice/agent?token=$token',
     );
 
     _channel = WebSocketChannel.connect(uri);

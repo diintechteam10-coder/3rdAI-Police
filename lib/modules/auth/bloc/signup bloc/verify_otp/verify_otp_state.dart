@@ -7,6 +7,10 @@ class VerifyOtpState {
   final bool isLoading;
   final bool isSuccess;
   final String? errorMessage;
+  final OtpChannel channel;
+  final bool resendLoading;
+  final bool resendSuccess;
+  final String? resendMessage;
 
   const VerifyOtpState({
     required this.type,
@@ -15,6 +19,10 @@ class VerifyOtpState {
     this.isLoading = false,
     this.isSuccess = false,
     this.errorMessage,
+    this.channel = OtpChannel.whatsapp,
+    this.resendLoading = false,
+    this.resendSuccess = false,
+    this.resendMessage,
   });
 
   VerifyOtpState copyWith({
@@ -24,6 +32,10 @@ class VerifyOtpState {
     bool? isLoading,
     bool? isSuccess,
     String? errorMessage,
+    OtpChannel? channel,
+    bool? resendLoading,
+    bool? resendSuccess,
+    String? resendMessage,
   }) {
     return VerifyOtpState(
       type: type ?? this.type,
@@ -32,6 +44,10 @@ class VerifyOtpState {
       isLoading: isLoading ?? this.isLoading,
       isSuccess: isSuccess ?? this.isSuccess,
       errorMessage: errorMessage ?? this.errorMessage,
+      channel: channel ?? this.channel,
+      resendLoading: resendLoading ?? this.resendLoading,
+      resendSuccess: resendSuccess ?? this.resendSuccess,
+      resendMessage: resendMessage ?? this.resendMessage,
     );
   }
 }

@@ -10,7 +10,7 @@ class PartnerProfileResponse {
   factory PartnerProfileResponse.fromJson(Map<String, dynamic> json) {
     return PartnerProfileResponse(
       success: json['success'] ?? false,
-      data: PartnerData.fromJson(json['data'] ?? {}),
+      data: PartnerData.fromJson(json['data']?['partner'] ?? json['data'] ?? {}),
     );
   }
 
@@ -57,7 +57,7 @@ class PartnerData {
 
   factory PartnerData.fromJson(Map<String, dynamic> json) {
     return PartnerData(
-      id: json['_id'] ?? '',
+      id: json['_id'] ?? json['id'] ?? '',
       email: json['email'] ?? '',
       phone: json['phone'] ?? '',
       designation: json['designation'] ?? '',

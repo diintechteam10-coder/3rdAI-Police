@@ -9,4 +9,7 @@ class AppKeys {
   // static const String currentAddress = "currentAddress";
   // static const String street = "street";
   // static const String guestAddress = "guest_address";
+  static const String agentId = "agent_id";
+  static const String agentName = "agent_name";
+  static const String agentFirstMessage = "agent_first_message";
 }

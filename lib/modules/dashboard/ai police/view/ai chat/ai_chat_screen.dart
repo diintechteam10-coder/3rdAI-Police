@@ -4,9 +4,9 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:sizer/sizer.dart';
 import 'package:shimmer/shimmer.dart';
-import '../../bloc/ai_chat_bloc.dart';
-import '../../bloc/ai_chat_event.dart';
-import '../../bloc/ai_chat_state.dart';
+import '../../bloc/ai chat bloc/ai_chat_bloc.dart';
+import '../../bloc/ai chat bloc/ai_chat_event.dart';
+import '../../bloc/ai chat bloc/ai_chat_state.dart';
 import '../../models/chat_model.dart';
 import '../../../../../../widgets/shimmer_widgets.dart';
 class AiChatScreen extends StatefulWidget {

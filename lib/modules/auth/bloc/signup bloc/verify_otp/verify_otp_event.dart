@@ -6,11 +6,13 @@ class VerifyOtpInitialized extends VerifyOtpEvent {
   final OtpType type;
   final String input;
   final String email;
+  final OtpChannel? channel;
 
   VerifyOtpInitialized({
     required this.type,
     required this.input,
     this.email = '',
+    this.channel,
   });
 }
 
@@ -19,3 +21,5 @@ class VerifyOtpSubmitted extends VerifyOtpEvent {
 
   VerifyOtpSubmitted({required this.otp});
 }
+
+class ResendOtpRequested extends VerifyOtpEvent {}

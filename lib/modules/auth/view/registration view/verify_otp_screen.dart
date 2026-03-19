@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -11,12 +12,14 @@ class OtpVerificationScreen extends StatefulWidget {
   final OtpType type;
   final String input;
   final String email;
+  final OtpChannel? channel;
 
   const OtpVerificationScreen({
     super.key,
     required this.type,
     required this.input,
     this.email = '',
+    this.channel,
   });
 
   @override
@@ -30,15 +33,21 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
   );
 
   final List<FocusNode> focusNodes = List.generate(6, (_) => FocusNode());
+  Timer? _timer;
+  int _secondsRemaining = 59;
+  bool _canResend = false;
+
   @override
   void initState() {
     super.initState();
+    _startTimer();
 
     context.read<VerifyOtpBloc>().add(
       VerifyOtpInitialized(
         type: widget.type,
         input: widget.input,
         email: widget.email,
+        channel: widget.channel,
       ),
     );
   }
@@ -51,7 +60,30 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
     for (var f in focusNodes) {
       f.dispose();
     }
+    _timer?.cancel();
     super.dispose();
+  }
+
+  void _startTimer() {
+    _canResend = false;
+    _secondsRemaining = 59;
+    _timer?.cancel();
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      setState(() {
+        if (_secondsRemaining > 0) {
+          _secondsRemaining--;
+        } else {
+          _canResend = true;
+          _timer?.cancel();
+        }
+      });
+    });
+  }
+
+  String _formatTime(int seconds) {
+    final mins = (seconds ~/ 60).toString().padLeft(2, '0');
+    final secs = (seconds % 60).toString().padLeft(2, '0');
+    return "$mins:$secs";
   }
 
   String get otp => controllers.map((c) => c.text).join();
@@ -118,18 +150,15 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                     children: List.generate(6, (index) => _otpBox(index)),
                   ),
 
-                  const SizedBox(height: 40),
+                  const SizedBox(height: 10),
+                  _resendOtpSection(),
 
                   /// 🔥 VERIFY BUTTON
+
+                  const SizedBox(height: 30),
                   _verifyButton(isEmail),
 
-                  const SizedBox(height: 20),
-
                   /// RESEND
-                  const Text(
-                    "Resend OTP in 00:30",
-                    style: TextStyle(color: Colors.white54),
-                  ),
                 ],
               ),
             ),
@@ -139,6 +168,80 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
     );
   }
 
+  Widget _resendOtpSection() {
+    return BlocListener<VerifyOtpBloc, VerifyOtpState>(
+      listenWhen: (previous, current) =>
+          previous.resendLoading != current.resendLoading ||
+          previous.resendSuccess != current.resendSuccess,
+      listener: (context, state) {
+        if (state.resendSuccess) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(state.resendMessage ?? "OTP Resent Successfully"),
+              backgroundColor: Colors.green,
+            ),
+          );
+          _startTimer(); // 🔁 timer restart after resend
+        } else if (state.resendMessage != null && !state.resendLoading) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(state.resendMessage!),
+              backgroundColor: Colors.redAccent,
+            ),
+          );
+        }
+      },
+      child: BlocBuilder<VerifyOtpBloc, VerifyOtpState>(
+        builder: (context, state) {
+          return Column(
+            children: [
+              /// ⏱️ TIMER TEXT
+              Text(
+                _canResend
+                    ? "Didn’t receive OTP?"
+                    : "Resend OTP in ${_formatTime(_secondsRemaining)}",
+                style: TextStyle(
+                  color: _canResend ? Colors.white70 : Colors.white54,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+
+              const SizedBox(height: 6),
+
+              /// 🔁 RESEND BUTTON / LOADER
+              if (_canResend)
+                state.resendLoading
+                    ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Color(0xFF7B61FF),
+                        ),
+                      )
+                    : TextButton(
+                        onPressed: () {
+                          context
+                              .read<VerifyOtpBloc>()
+                              .add(ResendOtpRequested());
+                        },
+                        child: const Text(
+                          "Resend OTP",
+                          style: TextStyle(
+                            color: Color(0xFF7B61FF),
+                            fontSize: 15,
+                            fontWeight: FontWeight.bold,
+                            decoration: TextDecoration.underline,
+                          ),
+                        ),
+                      ),
+            ],
+          );
+        },
+      ),
+    );
+  }
   Widget _verifyButton(bool isEmail) {
     return BlocConsumer<VerifyOtpBloc, VerifyOtpState>(
       listener: (context, state) {

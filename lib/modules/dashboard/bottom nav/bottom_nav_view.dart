@@ -35,63 +35,67 @@ class _BottomNavViewState extends State<BottomNavView> {
   Widget build(BuildContext context) {
     return BlocBuilder<BottomNavBloc, BottomNavState>(
       builder: (context, state) {
+        final padding = MediaQuery.of(context).padding;
         return Scaffold(
           resizeToAvoidBottomInset: false,
           body: IndexedStack(index: state.currentIndex, children: _pages),
 
-          bottomNavigationBar: Container(
-            height: 80, // 🔥 increased height
-            decoration: BoxDecoration(color: Color(0xFF031733)),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                _navItem(
-                  context,
-                  iconAsset: 'assets/icons/home.png',
-                  activeIconAsset: 'assets/icons/ahome.png',
-                  label: "Home",
-                  index: 0,
-                  currentIndex: state.currentIndex,
-                ),
-
-                /// Alerts
-                _navItem(
-                  context,
-                  icon: Icons.notifications_none,
-                  activeIcon: Icons.notifications,
-                  label: "Alerts",
-                  index: 1,
-                  currentIndex: state.currentIndex,
-                ),
-                _navItem(
-                  context,
-                  iconAsset: 'assets/icons/ri_ai (1).png',
-                  activeIconAsset: 'assets/icons/ri_ai.png',
-                  label: "Police",
-                  index: 2,
-                  currentIndex: state.currentIndex,
-                ),
-
-                /// Requests
-                _navItem(
-                  context,
-                  icon: Icons.assignment_outlined,
-                  activeIcon: Icons.assignment,
-                  label: "Requests",
-                  index: 3,
-                  currentIndex: state.currentIndex,
-                ),
-
-                /// Profile
-                _navItem(
-                  context,
-                  icon: Icons.person_outline,
-                  activeIcon: Icons.person,
-                  label: "Profile",
-                  index: 4,
-                  currentIndex: state.currentIndex,
-                ),
-              ],
+          bottomNavigationBar: Padding(
+            padding: EdgeInsets.only(bottom: padding.bottom),
+            child: Container(
+              height: 80, // 🔥 increased height
+              decoration: BoxDecoration(color: Color(0xFF031733)),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  _navItem(
+                    context,
+                    iconAsset: 'assets/icons/home.png',
+                    activeIconAsset: 'assets/icons/ahome.png',
+                    label: "Home",
+                    index: 0,
+                    currentIndex: state.currentIndex,
+                  ),
+            
+                  /// Alerts
+                  _navItem(
+                    context,
+                    icon: Icons.notifications_none,
+                    activeIcon: Icons.notifications,
+                    label: "Alerts",
+                    index: 1,
+                    currentIndex: state.currentIndex,
+                  ),
+                  _navItem(
+                    context,
+                    iconAsset: 'assets/icons/ri_ai (1).png',
+                    activeIconAsset: 'assets/icons/ri_ai.png',
+                    label: "Police",
+                    index: 2,
+                    currentIndex: state.currentIndex,
+                  ),
+            
+                  /// Requests
+                  _navItem(
+                    context,
+                    icon: Icons.assignment_outlined,
+                    activeIcon: Icons.assignment,
+                    label: "Requests",
+                    index: 3,
+                    currentIndex: state.currentIndex,
+                  ),
+            
+                  /// Profile
+                  _navItem(
+                    context,
+                    icon: Icons.person_outline,
+                    activeIcon: Icons.person,
+                    label: "Profile",
+                    index: 4,
+                    currentIndex: state.currentIndex,
+                  ),
+                ],
+              ),
             ),
           ),
         );

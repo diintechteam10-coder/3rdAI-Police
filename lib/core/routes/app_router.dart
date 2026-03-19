@@ -58,7 +58,7 @@ class AppRouter {
               BlocProvider(create: (_) => SigninMethodsBloc()),
               BlocProvider(
                 create: (_) =>
-                    GoogleAuthBloc(repository: GoogleAuthRepository()),
+                    GoogleSignInBloc(repository: GoogleAuthRepository()),
               ),
             ],
             child: const SigninMethodsScreen(),
@@ -82,7 +82,7 @@ class AppRouter {
               ),
               BlocProvider(
                 create: (_) =>
-                    GoogleAuthBloc(repository: GoogleAuthRepository()),
+                    GoogleSignInBloc(repository: GoogleAuthRepository()),
               ),
             ],
             child: const LoginScreen(),
@@ -125,10 +125,12 @@ class AppRouter {
         String input = '';
         String email = '';
 
+        OtpChannel? channel;
         if (args is Map) {
           type = args['type'] as OtpType? ?? OtpType.email;
           input = args['input']?.toString() ?? '';
           email = args['email']?.toString() ?? '';
+          channel = args['channel'] as OtpChannel?;
         }
 
         return MaterialPageRoute(
@@ -138,12 +140,18 @@ class AppRouter {
                   emailRepo: VerifyEmailOtpRepo(),
                   phoneRepo: VerifyPhoneOtpRepo(),
                 )..add(
-                  VerifyOtpInitialized(type: type, input: input, email: email),
+                  VerifyOtpInitialized(
+                    type: type,
+                    input: input,
+                    email: email,
+                    channel: channel,
+                  ),
                 ),
             child: OtpVerificationScreen(
               type: type,
               input: input,
               email: email,
+              channel: channel,
             ),
           ),
         );

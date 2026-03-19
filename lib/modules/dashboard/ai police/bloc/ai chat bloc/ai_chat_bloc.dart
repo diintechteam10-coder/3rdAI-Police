@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import '../repository/ai_chat_repository.dart';
-import '../models/chat_model.dart';
+import '../../repository/ai_chat_repository.dart';
+import '../../models/chat_model.dart';
 import 'ai_chat_event.dart';
 import 'ai_chat_state.dart';
 

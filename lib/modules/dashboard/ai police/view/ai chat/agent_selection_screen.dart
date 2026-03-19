@@ -4,16 +4,21 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:sizer/sizer.dart';
 import 'package:shimmer/shimmer.dart';
 
-import '../../bloc/ai_chat_bloc.dart';
-import '../../bloc/ai_chat_event.dart';
-import '../../bloc/ai_chat_state.dart';
+import '../../../../../../core/constants/app_colors.dart';
+import '../../bloc/ai chat bloc/ai_chat_bloc.dart';
+import '../../bloc/ai chat bloc/ai_chat_event.dart';
+import '../../bloc/ai chat bloc/ai_chat_state.dart';
 import '../../models/response/get_agents_response_model.dart';
+import '../../../../../../core/services/secure_storage_service.dart';
+import '../../../../../../core/constants/app_keys.dart';
 import '../../repository/ai_chat_repository.dart';
 import 'ai_chat_screen.dart';
+import 'ai_call_screen.dart';
 
 /// Screen to select an AI agent before starting a chat
 class AgentSelectionScreen extends StatefulWidget {
-  const AgentSelectionScreen({super.key});
+  final bool isTalk;
+  const AgentSelectionScreen({super.key, this.isTalk = false});
 
   @override
   State<AgentSelectionScreen> createState() => _AgentSelectionScreenState();
@@ -31,20 +36,20 @@ class _AgentSelectionScreenState extends State<AgentSelectionScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0D1B2A),
+      backgroundColor: AppColors.bgColor,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF0D1B2A),
+        backgroundColor: AppColors.bgColor,
         elevation: 0,
         title: Text(
           'Select AI Agent',
           style: GoogleFonts.poppins(
-            color: const Color(0xFFD4AF37),
+            color: AppColors.gold,
             fontWeight: FontWeight.w600,
             fontSize: 16.sp,
           ),
         ),
         centerTitle: true,
-        iconTheme: const IconThemeData(color: Colors.white),
+        iconTheme: const IconThemeData(color: AppColors.white),
       ),
       body: BlocBuilder<AiChatBloc, AiChatState>(
         builder: (context, state) {
@@ -57,7 +62,7 @@ class _AgentSelectionScreenState extends State<AgentSelectionScreen> {
               return Center(
                 child: Text(
                   'No agents found',
-                  style: GoogleFonts.poppins(color: Colors.white70),
+                  style: GoogleFonts.poppins(color: AppColors.textGrey),
                 ),
               );
             }
@@ -80,21 +85,46 @@ class _AgentSelectionScreenState extends State<AgentSelectionScreen> {
                 ),
                 _ContinueButton(
                   enabled: selectedAgent != null,
-                  onPressed: () {
+                  isTalk: widget.isTalk,
+                  onPressed: () async {
                     final agent = selectedAgent!;
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => BlocProvider(
-                          create: (_) => AiChatBloc(AiChatRepository()),
-                          child: AiChatScreen(
-                            agentId: agent.id,
-                            agentName: agent.displayName,
-                            firstMessage: agent.firstMessage,
+                    
+                    // Save agent info to secure storage
+                    await SecureStorageService.instance.write(
+                      key: AppKeys.agentId,
+                      value: agent.id,
+                    );
+                    await SecureStorageService.instance.write(
+                      key: AppKeys.agentName,
+                      value: agent.displayName,
+                    );
+                    await SecureStorageService.instance.write(
+                      key: AppKeys.agentFirstMessage,
+                      value: agent.firstMessage,
+                    );
+
+                    if (widget.isTalk) {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const AiCallScreen(),
+                        ),
+                      );
+                    } else {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => BlocProvider(
+                            create: (_) => AiChatBloc(AiChatRepository()),
+                            child: AiChatScreen(
+                              agentId: agent.id,
+                              agentName: agent.displayName,
+                              firstMessage: agent.firstMessage,
+                            ),
                           ),
                         ),
-                      ),
-                    );
+                      );
+                    }
                   },
                 ),
               ],
@@ -106,12 +136,12 @@ class _AgentSelectionScreenState extends State<AgentSelectionScreen> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(Icons.error_outline, color: Colors.red, size: 48),
+                  const Icon(Icons.error_outline, color: AppColors.errorRed, size: 48),
                   const SizedBox(height: 12),
                   Text(
                     state.message,
                     style:
-                        GoogleFonts.poppins(color: Colors.white70, fontSize: 14.sp),
+                        GoogleFonts.poppins(color: AppColors.textGrey, fontSize: 14.sp),
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 16),
@@ -155,13 +185,13 @@ class _AgentCard extends StatelessWidget {
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: isSelected
-              ? const Color(0xFFD4AF37).withOpacity(0.12)
-              : const Color(0xFF132B4C),
+              ? AppColors.gold.withOpacity(0.12)
+              : AppColors.lightGrey,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: isSelected
-                ? const Color(0xFFD4AF37)
-                : const Color(0xFF2C5EA8).withOpacity(0.4),
+                ? AppColors.gold
+                : AppColors.borderGrey.withOpacity(0.4),
             width: isSelected ? 1.5 : 1,
           ),
         ),
@@ -169,11 +199,11 @@ class _AgentCard extends StatelessWidget {
           children: [
             CircleAvatar(
               radius: 24,
-              backgroundColor: const Color(0xFF2C5EA8),
+              backgroundColor: AppColors.primary,
               child: Text(
                 agent.displayName.isNotEmpty ? agent.displayName[0] : 'A',
                 style: GoogleFonts.poppins(
-                  color: Colors.white,
+                  color: AppColors.white,
                   fontWeight: FontWeight.bold,
                   fontSize: 16.sp,
                 ),
@@ -187,7 +217,7 @@ class _AgentCard extends StatelessWidget {
                   Text(
                     agent.displayName,
                     style: GoogleFonts.poppins(
-                      color: Colors.white,
+                      color: AppColors.white,
                       fontSize: 14.sp,
                       fontWeight: FontWeight.w600,
                     ),
@@ -200,7 +230,7 @@ class _AgentCard extends StatelessWidget {
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: GoogleFonts.poppins(
-                      color: Colors.white54,
+                      color: AppColors.textGrey,
                       fontSize: 12.sp,
                     ),
                   ),
@@ -208,7 +238,7 @@ class _AgentCard extends StatelessWidget {
               ),
             ),
             if (isSelected)
-              const Icon(Icons.check_circle, color: Color(0xFFD4AF37), size: 22),
+              const Icon(Icons.check_circle, color: AppColors.gold, size: 22),
           ],
         ),
       ),
@@ -220,9 +250,14 @@ class _AgentCard extends StatelessWidget {
 
 class _ContinueButton extends StatelessWidget {
   final bool enabled;
+  final bool isTalk;
   final VoidCallback onPressed;
 
-  const _ContinueButton({required this.enabled, required this.onPressed});
+  const _ContinueButton({
+    required this.enabled,
+    required this.isTalk,
+    required this.onPressed,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -235,12 +270,12 @@ class _ContinueButton extends StatelessWidget {
           decoration: BoxDecoration(
             gradient: enabled
                 ? const LinearGradient(
-                    colors: [Color(0xFFFFD700), Color(0xFFD4AF37)],
+                    colors: [AppColors.lightPrimary, AppColors.gold],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   )
                 : null,
-            color: enabled ? null : const Color(0xFF1E2A3A),
+            color: enabled ? null : AppColors.lightBackground,
             borderRadius: BorderRadius.circular(16),
           ),
           child: ElevatedButton(
@@ -252,11 +287,11 @@ class _ContinueButton extends StatelessWidget {
             ),
             onPressed: enabled ? onPressed : null,
             child: Text(
-              'Start Chat',
+              isTalk ? 'Start Talking' : 'Start Chat',
               style: GoogleFonts.poppins(
                 fontSize: 16.sp,
                 fontWeight: FontWeight.w600,
-                color: enabled ? Colors.black : Colors.white30,
+                color: enabled ? AppColors.black : AppColors.textGrey,
               ),
             ),
           ),
@@ -274,8 +309,8 @@ class _AgentListShimmer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Shimmer.fromColors(
-      baseColor: const Color(0xFF132B4C),
-      highlightColor: const Color(0xFF1E3A5A),
+      baseColor: AppColors.lightGrey,
+      highlightColor: AppColors.lighterGrey,
       child: ListView.builder(
         padding: const EdgeInsets.all(16),
         physics: const NeverScrollableScrollPhysics(),
@@ -295,12 +330,12 @@ class _AgentCardShimmer extends StatelessWidget {
       margin: const EdgeInsets.symmetric(vertical: 8),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.white,
         borderRadius: BorderRadius.circular(16),
       ),
       child: Row(
         children: [
-          const CircleAvatar(radius: 24, backgroundColor: Colors.white),
+          const CircleAvatar(radius: 24, backgroundColor: AppColors.white),
           const SizedBox(width: 14),
           Expanded(
             child: Column(
@@ -310,7 +345,7 @@ class _AgentCardShimmer extends StatelessWidget {
                   height: 14.sp,
                   width: 120,
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: AppColors.white,
                     borderRadius: BorderRadius.circular(4),
                   ),
                 ),
@@ -319,7 +354,7 @@ class _AgentCardShimmer extends StatelessWidget {
                   height: 12.sp,
                   width: double.infinity,
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: AppColors.white,
                     borderRadius: BorderRadius.circular(4),
                   ),
                 ),

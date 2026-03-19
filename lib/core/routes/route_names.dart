@@ -9,4 +9,5 @@ class RouteNames {
   static const selectClientScreen = '/selectClient';
   static const approvalPendingScreen = '/approvalPending';
   static const bottomNav = '/bottomNav';
+  static const googleSignInScreen = '/googleSignIn';
 }

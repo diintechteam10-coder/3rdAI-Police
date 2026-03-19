@@ -1,4 +1,4 @@
-import '../models/response/get_agents_response_model.dart';
+import '../../models/response/get_agents_response_model.dart';
 
 abstract class AgentState {}
 

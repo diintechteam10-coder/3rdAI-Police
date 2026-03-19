@@ -17,9 +17,9 @@ class GoogleSignInButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocBuilder<GoogleAuthBloc, GoogleAuthState>(
+    return BlocBuilder<GoogleSignInBloc, GoogleSignInState>(
       builder: (context, state) {
-        final isLoading = state is GoogleAuthLoading;
+        final isLoading = state is GoogleSignInLoading;
 
         return SizedBox(
           height: height,
@@ -37,8 +37,8 @@ class GoogleSignInButton extends StatelessWidget {
             onPressed: isLoading
                 ? null
                 : () {
-                    context.read<GoogleAuthBloc>().add(
-                      const GoogleSignInRequested(),
+                    context.read<GoogleSignInBloc>().add(
+                      OnGoogleSignInPressed(),
                     );
                   },
             child: Row(

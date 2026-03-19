@@ -1,6 +1,6 @@
 import 'package:equatable/equatable.dart';
-import '../models/chat_model.dart';
-import '../models/response/get_agents_response_model.dart';
+import '../../models/chat_model.dart';
+import '../../models/response/get_agents_response_model.dart';
 
 abstract class AiChatState extends Equatable {
   @override

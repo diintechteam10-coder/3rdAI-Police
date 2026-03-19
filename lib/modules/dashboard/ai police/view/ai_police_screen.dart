@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../bloc/ai_chat_bloc.dart';
+import '../bloc/ai chat bloc/ai_chat_bloc.dart';
 import '../repository/ai_chat_repository.dart';
 import 'ai chat/agent_selection_screen.dart';
 
@@ -137,7 +137,7 @@ class AiPoliceScreen extends StatelessWidget {
                                   MaterialPageRoute(
                                     builder: (_) => BlocProvider(
                                       create: (_) => AiChatBloc(AiChatRepository()),
-                                      child: const AgentSelectionScreen(),
+                                      child: const AgentSelectionScreen(isTalk: true),
                                     ),
                                   ),
                                 );
@@ -195,7 +195,7 @@ class AiPoliceScreen extends StatelessWidget {
                                     builder: (_) => BlocProvider(
                                       create: (_) =>
                                           AiChatBloc(AiChatRepository()),
-                                      child: const AgentSelectionScreen(),
+                                      child: const AgentSelectionScreen(isTalk: false),
                                     ),
                                   ),
                                 );

@@ -71,10 +71,10 @@ class _SigninMethodsScreenState extends State<SigninMethodsScreen>
             }
           },
         ),
-        BlocListener<GoogleAuthBloc, GoogleAuthState>(
+        BlocListener<GoogleSignInBloc, GoogleSignInState>(
           listener: (context, state) {
-            if (state is GoogleAuthSuccess) {
-              if (state.backendResponse.registrationComplete) {
+            if (state is GoogleSignInSuccess) {
+              if (state.response.registrationComplete) {
                 // If already registered, go to home
                 Navigator.pushReplacementNamed(context, RouteNames.bottomNav);
               } else {
@@ -84,11 +84,11 @@ class _SigninMethodsScreenState extends State<SigninMethodsScreen>
                   RouteNames.sendOtpScreen,
                   arguments: {
                     'type': OtpType.mobile,
-                    'email': state.user.email ?? '',
+                    'email': state.response.data.email,
                   },
                 );
               }
-            } else if (state is GoogleAuthFailure) {
+            } else if (state is GoogleSignInError) {
               SnackbarUtil.showError(context: context, message: state.message);
             }
           },

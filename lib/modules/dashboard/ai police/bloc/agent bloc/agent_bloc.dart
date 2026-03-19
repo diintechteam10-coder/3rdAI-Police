@@ -1,5 +1,5 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
-import '../repository/get_agents_repo.dart';
+import '../../repository/get_agents_repo.dart';
 import 'agent_event.dart';
 import 'agent_state.dart';
 

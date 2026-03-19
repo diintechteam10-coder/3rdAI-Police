@@ -51,8 +51,8 @@ class _SendOtpScreenState extends State<SendOtpScreen> {
             arguments: {
               'type': state.type,
               'input': controller.text,
-              'email': state
-                  .email, // Add email so it can be passed to VerifyPhoneOtpRequestModel
+              'email': state.email,
+              'channel': state.channel,
             },
           );
         }

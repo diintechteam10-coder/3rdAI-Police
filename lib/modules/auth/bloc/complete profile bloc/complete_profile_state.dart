@@ -96,7 +96,6 @@ class CompleteProfileState {
 
   bool get isValid =>
       email.isNotEmpty &&
-      clientId.isNotEmpty &&
       name.isNotEmpty &&
       designation.isNotEmpty &&
       policeId.isNotEmpty &&
