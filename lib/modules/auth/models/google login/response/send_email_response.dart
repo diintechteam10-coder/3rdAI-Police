@@ -1,67 +1,55 @@
-class EmailCheckResponse {
+class GoogleSignInResponse {
   final bool success;
   final String message;
   final bool registrationComplete;
-  final EmailCheckData data;
+  final GoogleData data;
 
-  EmailCheckResponse({
+  GoogleSignInResponse({
     required this.success,
     required this.message,
     required this.registrationComplete,
     required this.data,
   });
 
-  factory EmailCheckResponse.fromJson(Map<String, dynamic> json) {
-    return EmailCheckResponse(
+  factory GoogleSignInResponse.fromJson(Map<String, dynamic> json) {
+    return GoogleSignInResponse(
       success: json['success'] ?? false,
       message: json['message'] ?? '',
       registrationComplete: json['registrationComplete'] ?? false,
-      data: EmailCheckData.fromJson(json['data'] ?? {}),
+      data: GoogleData.fromJson(json['data'] ?? {}),
     );
-  }
-
-  Map<String, dynamic> toJson() {
-    return {
-      "success": success,
-      "message": message,
-      "registrationComplete": registrationComplete,
-      "data": data.toJson(),
-    };
   }
 }
+class GoogleData {
+  final String? token;
+  final String? email;
+  final String? clientId;
 
-class EmailCheckData {
-  final String email;
-  final bool emailVerified;
-  final int registrationStep;
-  final String nextStep;
-  final String clientId;
+  final bool? emailVerified;
+  final int? registrationStep;
+  final String? nextStep;
 
-  EmailCheckData({
-    required this.email,
-    required this.emailVerified,
-    required this.registrationStep,
-    required this.nextStep,
-    required this.clientId,
+  GoogleData({
+    this.token,
+    this.email,
+    this.clientId,
+    this.emailVerified,
+    this.registrationStep,
+    this.nextStep,
   });
 
-  factory EmailCheckData.fromJson(Map<String, dynamic> json) {
-    return EmailCheckData(
-      email: json['email'] ?? '',
-      emailVerified: json['emailVerified'] ?? false,
-      registrationStep: json['registrationStep'] ?? 0,
-      nextStep: json['nextStep'] ?? '',
-      clientId: json['clientId'] ?? '',
+  factory GoogleData.fromJson(Map<String, dynamic> json) {
+    return GoogleData(
+      token: json['token'], // only in login case
+      email: json['email'],
+      clientId: json['clientId'],
+      emailVerified: json['emailVerified'],
+      registrationStep: json['registrationStep'],
+      nextStep: json['nextStep'],
     );
   }
 
-  Map<String, dynamic> toJson() {
-    return {
-      "email": email,
-      "emailVerified": emailVerified,
-      "registrationStep": registrationStep,
-      "nextStep": nextStep,
-      "clientId": clientId,
-    };
-  }
+  /// 🔥 Helper methods (VERY USEFUL)
+  bool get isLoggedIn => token != null;
+  bool get isRegistrationFlow => token == null;
 }

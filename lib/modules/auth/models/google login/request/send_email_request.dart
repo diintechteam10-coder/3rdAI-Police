@@ -1,8 +1,8 @@
-class SendEmailOtpRequestModel {
+class GoogleSignInRequest {
   final String email;
   final String clientId;
 
-  SendEmailOtpRequestModel({
+  GoogleSignInRequest({
     required this.email,
     required this.clientId,
   });
@@ -14,18 +14,18 @@ class SendEmailOtpRequestModel {
     };
   }
 
-  factory SendEmailOtpRequestModel.fromJson(Map<String, dynamic> json) {
-    return SendEmailOtpRequestModel(
+  factory GoogleSignInRequest.fromJson(Map<String, dynamic> json) {
+    return GoogleSignInRequest(
       email: json['email'] ?? '',
       clientId: json['clientId'] ?? '',
     );
   }
 
-  SendEmailOtpRequestModel copyWith({
+  GoogleSignInRequest copyWith({
     String? email,
     String? clientId,
   }) {
-    return SendEmailOtpRequestModel(
+    return GoogleSignInRequest(
       email: email ?? this.email,
       clientId: clientId ?? this.clientId,
     );

@@ -70,7 +70,8 @@ class _LoginScreenState extends State<LoginScreen>
             } else {
               Navigator.pushReplacementNamed(
                 context,
-                RouteNames.approvalPendingScreen,
+                RouteNames.approvalStatus,
+                arguments: _emailController.text.trim(),
               );
             }
           }
@@ -207,9 +208,34 @@ class _LoginScreenState extends State<LoginScreen>
                                   },
                                 ),
                               ),
+                              const SizedBox(height: 10),
 
-                              const SizedBox(height: 30),
-
+                              Align(
+                                alignment: Alignment.centerRight,
+                                child: TextButton(
+                                    onPressed: () {
+                                      Navigator.pushNamed(
+                                        context,
+                                        RouteNames.forgotPasswordScreen,
+                                      );
+                                    },
+                                  style: TextButton.styleFrom(
+                                    padding: EdgeInsets.zero,
+                                    minimumSize: const Size(0, 0),
+                                    tapTargetSize:
+                                        MaterialTapTargetSize.shrinkWrap,
+                                  ),
+                                  child: const Text(
+                                    'Forgot Password?',
+                                    style: TextStyle(
+                                      color: AppColors.primary,
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 20),
                               SizedBox(
                                 width: double.infinity,
                                 child: ElevatedButton(
@@ -254,14 +280,17 @@ class _LoginScreenState extends State<LoginScreen>
                                   ),
                                   child: state is LoginLoading
                                       ? ShimmerWidgets.base(
-                                          baseColor: AppColors.black.withOpacity(0.1),
-                                          highlightColor: AppColors.black.withOpacity(0.3),
+                                          baseColor: AppColors.black
+                                              .withOpacity(0.1),
+                                          highlightColor: AppColors.black
+                                              .withOpacity(0.3),
                                           child: Container(
                                             height: 20,
                                             width: 100,
                                             decoration: BoxDecoration(
                                               color: AppColors.black,
-                                              borderRadius: BorderRadius.circular(4),
+                                              borderRadius:
+                                                  BorderRadius.circular(4),
                                             ),
                                           ),
                                         )

@@ -77,7 +77,7 @@ class UploadProfilePicScreen extends StatelessWidget {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text("Profile picture uploaded!")),
                 );
-                Navigator.pushReplacementNamed(context, RouteNames.bottomNav);
+                Navigator.pushReplacementNamed(context, RouteNames.approvalStatus);
               }
             },
             builder: (context, state) {
@@ -180,7 +180,10 @@ class UploadProfilePicScreen extends StatelessWidget {
 
                     TextButton(
                       onPressed: () {
-                        Navigator.pushNamed(context, RouteNames.bottomNav);
+                        Navigator.pushReplacementNamed(
+                          context,
+                          RouteNames.approvalStatus,
+                        );
                       },
                       child: const Text(
                         "Skip for now",

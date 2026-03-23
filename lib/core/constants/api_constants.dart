@@ -40,4 +40,13 @@ class ApiConstants {
   static const String healthCheck = "${baseUrl}health";
   static const String voiceStart = "${baseUrl}mobile/voice/start";
   static const String voiceProcess = "${baseUrl}mobile/voice/process";
+
+  static const String getGeoArea = "${baseUrl}areas";
+  static const String approvalStatus = "${baseUrl}partners/approval-status";
+
+  // Forgot Password
+  static const String forgotPassword = "${baseUrl}auth/partner/forgot-password";
+  static const String verifyResetOtp = "${baseUrl}auth/partner/verify-reset-otp";
+  static const String resetPassword = "${baseUrl}auth/partner/reset-password";
+  static const String resendResetOtp = "${baseUrl}auth/partner/resend-reset-otp";
 }

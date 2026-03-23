@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:sizer/sizer.dart';
 
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/routes/route_names.dart';
@@ -50,253 +51,268 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
     _experienceController.dispose();
     super.dispose();
   }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // backgroundColor: AppColors.bgColor,
+      backgroundColor: const Color(0xffF5F7FB),
+      body: BlocConsumer<CompleteProfileBloc, CompleteProfileState>(
+        listener: (context, state) {
+          if (state.isSuccess) {
+            Navigator.pushNamed(context, RouteNames.uploadProfilePicScreen);
+          }
+        },
+        builder: (context, state) {
+          return Stack(
+            children: [
+              // 🎨 BACKGROUND HEADER GRADIENT
+              Container(
+                height: 250,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      AppColors.primary,
+                      AppColors.primary.withValues(alpha: 0.8),
+                    ],
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                  ),
+                ),
+              ),
 
-      /// APP BAR
-      appBar: AppBar(
-        elevation: 0,
-        title: const Text(
-          "Complete Profile",
-          style: TextStyle(color: AppColors.white),
-        ),
-        iconTheme: const IconThemeData(color: AppColors.white),
-        backgroundColor: AppColors.primary,
-        centerTitle: true,
-      ),
-
-      body: SafeArea(
-        child: BlocConsumer<CompleteProfileBloc, CompleteProfileState>(
-          listener: (context, state) {
-            if (state.isSuccess) {
-              Navigator.pushNamed(context, RouteNames.uploadProfilePicScreen);
-            }
-          },
-          builder: (context, state) {
-            return SingleChildScrollView(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                children: [
-                  // /// HEADER
-                  // Container(
-                  //   width: double.infinity,
-                  //   padding: const EdgeInsets.all(24),
-                  //   decoration: BoxDecoration(
-                  //     gradient: LinearGradient(
-                  //       colors: [
-                  //         AppColors.primary.withOpacity(.9),
-                  //         AppColors.primary.withOpacity(.7),
-                  //       ],
-                  //     ),
-                  //     borderRadius: BorderRadius.circular(18),
-                  //   ),
-                  //   child: const Column(
-                  //     children: [
-                  //       Icon(
-                  //         Icons.person_outline,
-                  //         size: 50,
-                  //         color: Colors.white,
-                  //       ),
-                  //       SizedBox(height: 10),
-                  //       Text(
-                  //         "Complete Your Profile",
-                  //         style: TextStyle(
-                  //           fontSize: 20,
-                  //           fontWeight: FontWeight.bold,
-                  //           color: Colors.white,
-                  //         ),
-                  //       ),
-                  //       SizedBox(height: 4),
-                  //       Text(
-                  //         "Fill your professional details",
-                  //         style: TextStyle(
-                  //           color: Colors.white70,
-                  //         ),
-                  //       )
-                  //     ],
-                  //   ),
-                  // ),
-
-                  // const SizedBox(height: 25),
-
-                  /// FORM CARD
-                  Container(
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(18),
-                      boxShadow: [
-                        BoxShadow(
-                          blurRadius: 18,
-                          color: Colors.black.withOpacity(.06),
-                          offset: const Offset(0, 6),
-                        ),
-                      ],
+              // 🚀 MAIN CONTENT
+              SafeArea(
+                child: Column(
+                  children: [
+                    // --- AppBar ---
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      child: Row(
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.arrow_back, color: Colors.white),
+                            onPressed: () => Navigator.pop(context),
+                          ),
+                          const Spacer(),
+                        ],
+                      ),
                     ),
-                    child: Column(
-                      children: [
-                        /// NAME
-                        ModernTextField(
-                          label: "Full Name",
-                          hint: "Enter your full name",
-                          controller: _nameController,
-                          onChanged: (value) {
-                            context.read<CompleteProfileBloc>().add(
-                              CompleteProfileInputChanged(
-                                field: 'name',
-                                value: value,
-                              ),
-                            );
-                          },
-                        ),
 
-                        const SizedBox(height: 16),
-
-                        /// EMAIL
-                        ModernTextField(
-                          label: "Email",
-                          hint: "Enter your email",
-                          controller: _emailController,
-                          keyboardType: TextInputType.emailAddress,
-                          onChanged: (value) {
-                            context.read<CompleteProfileBloc>().add(
-                              CompleteProfileInputChanged(
-                                field: 'email',
-                                value: value,
-                              ),
-                            );
-                          },
-                        ),
-
-                        const SizedBox(height: 16),
-
-                        /// DESIGNATION
-                        ModernTextField(
-                          label: "Designation",
-                          hint: "Enter your designation",
-                          controller: _designationController,
-                          onChanged: (value) {
-                            context.read<CompleteProfileBloc>().add(
-                              CompleteProfileInputChanged(
-                                field: 'designation',
-                                value: value,
-                              ),
-                            );
-                          },
-                        ),
-
-                        const SizedBox(height: 16),
-
-                        /// POLICE ID
-                        ModernTextField(
-                          label: "Police ID",
-                          hint: "Enter your police ID",
-                          controller: _policeIdController,
-                          onChanged: (value) {
-                            context.read<CompleteProfileBloc>().add(
-                              CompleteProfileInputChanged(
-                                field: 'policeId',
-                                value: value,
-                              ),
-                            );
-                          },
-                        ),
-
-                        const SizedBox(height: 16),
-
-                        /// AREA
-                        ModernTextField(
-                          label: "Area",
-                          hint: "Enter your area",
-                          controller: _areaController,
-                          onChanged: (value) {
-                            context.read<CompleteProfileBloc>().add(
-                              CompleteProfileInputChanged(
-                                field: 'area',
-                                value: value,
-                              ),
-                            );
-                          },
-                        ),
-
-                        const SizedBox(height: 16),
-
-                        /// STATE
-                        ModernTextField(
-                          label: "State",
-                          hint: "Enter your state",
-                          controller: _stateController,
-                          onChanged: (value) {
-                            context.read<CompleteProfileBloc>().add(
-                              CompleteProfileInputChanged(
-                                field: 'state',
-                                value: value,
-                              ),
-                            );
-                          },
-                        ),
-
-                        const SizedBox(height: 16),
-
-                        /// EXPERIENCE
-                        ModernTextField(
-                          label: "Experience (Years)",
-                          hint: "Enter years of experience",
-                          controller: _experienceController,
-                          keyboardType: TextInputType.number,
-                          onChanged: (value) {
-                            context.read<CompleteProfileBloc>().add(
-                              CompleteProfileInputChanged(
-                                field: 'experience',
-                                value: value,
-                              ),
-                            );
-                          },
-                        ),
-
-                        const SizedBox(height: 28),
-
-                        /// SUBMIT BUTTON
-                        ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            elevation: 0,
-                            backgroundColor: AppColors.primary,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(14),
+                    // --- Header Text ---
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 24),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            "Complete Profile",
+                            style: TextStyle(
+                              fontSize: 28,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                              letterSpacing: 0.5,
                             ),
                           ),
-                          onPressed: state.isValid
-                              ? () {
-                                  context.read<CompleteProfileBloc>().add(
-                                    const CompleteProfileSubmitted(),
-                                  );
-                                }
-                              : null,
-                          child: state.isLoading
-                              ? const CircularProgressIndicator(
-                                  color: Colors.white,
-                                )
-                              : const Text(
-                                  "Submit Profile",
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    color: AppColors.white,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                        ),
-                      ],
+                          const SizedBox(height: 4),
+                          Text(
+                            "Fill the form below to secure your identity",
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.white.withValues(alpha: 0.8),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                ],
+
+                    const SizedBox(height: 24),
+
+                    // --- Form Container ---
+                    Expanded(
+                      child: Container(
+                        width: double.infinity,
+                        decoration: const BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.only(
+                            topLeft: Radius.circular(30),
+                            topRight: Radius.circular(30),
+                          ),
+                        ),
+                        child: SingleChildScrollView(
+                          padding:  EdgeInsets.fromLTRB(24, 32, 24, 15.h),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              _buildFormHeader("User Information", Icons.person_outline),
+                              const SizedBox(height: 20),
+
+                              /// NAME
+                              ModernTextField(
+                                label: "Full Name",
+                                hint: "Enter your full name",
+                                controller: _nameController,
+                                prefixIcon: Icons.person,
+                                onChanged: (value) => _onInputChanged('name', value),
+                              ),
+                              const SizedBox(height: 16),
+
+                              /// EMAIL
+                              ModernTextField(
+                                label: "Email Address",
+                                hint: "Enter your email",
+                                controller: _emailController,
+                                keyboardType: TextInputType.emailAddress,
+                                prefixIcon: Icons.email,
+                                onChanged: (value) => _onInputChanged('email', value),
+                              ),
+                              const SizedBox(height: 32),
+
+                              _buildFormHeader("Professional Details", Icons.badge_outlined),
+                              const SizedBox(height: 20),
+
+                              /// DESIGNATION
+                              ModernTextField(
+                                label: "Designation",
+                                hint: "e.g. Sub-Inspector",
+                                controller: _designationController,
+                                prefixIcon: Icons.work,
+                                onChanged: (value) => _onInputChanged('designation', value),
+                              ),
+                              const SizedBox(height: 16),
+
+                              /// POLICE ID
+                              ModernTextField(
+                                label: "Police ID",
+                                hint: "Enter your unique badge ID",
+                                controller: _policeIdController,
+                                prefixIcon: Icons.verified_user,
+                                onChanged: (value) => _onInputChanged('policeId', value),
+                              ),
+                              const SizedBox(height: 16),
+
+                              /// EXPERIENCE
+                              ModernTextField(
+                                label: "Experience (Years)",
+                                hint: "Enter years of experience",
+                                controller: _experienceController,
+                                keyboardType: TextInputType.number,
+                                prefixIcon: Icons.history,
+                                onChanged: (value) => _onInputChanged('experience', value),
+                              ),
+                              const SizedBox(height: 32),
+
+                              _buildFormHeader("Location Info", Icons.location_on_outlined),
+                              const SizedBox(height: 20),
+
+                              /// AREA
+                              ModernTextField(
+                                label: "Area / Station",
+                                hint: "Assigned jurisdiction",
+                                controller: _areaController,
+                                prefixIcon: Icons.map,
+                                onChanged: (value) => _onInputChanged('area', value),
+                              ),
+                              const SizedBox(height: 16),
+
+                              /// STATE
+                              ModernTextField(
+                                label: "State",
+                                hint: "Operational state",
+                                controller: _stateController,
+                                prefixIcon: Icons.flag,
+                                onChanged: (value) => _onInputChanged('state', value),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            );
-          },
-        ),
+
+              // 🚀 STICKY BOTTOM BUTTON
+              Positioned(
+                bottom: 0,
+                left: 0,
+                right: 0,
+                child: Container(
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.05),
+                        blurRadius: 10,
+                        offset: const Offset(0, -5),
+                      ),
+                    ],
+                  ),
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: Colors.white,
+                      minimumSize: const Size(double.infinity, 56),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      elevation: 4,
+                      disabledBackgroundColor: Colors.grey.shade300,
+                    ),
+                    onPressed: state.isValid && !state.isLoading
+                        ? () {
+                            context.read<CompleteProfileBloc>().add(
+                                  const CompleteProfileSubmitted(),
+                                );
+                          }
+                        : null,
+                    child: state.isLoading
+                        ? const SizedBox(
+                            height: 24,
+                            width: 24,
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
+                              strokeWidth: 2,
+                            ),
+                          )
+                        : const Text(
+                            "Submit Profile",
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                  ),
+                ),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
+
+  void _onInputChanged(String field, String value) {
+    context.read<CompleteProfileBloc>().add(
+          CompleteProfileInputChanged(field: field, value: value),
+        );
+  }
+
+  Widget _buildFormHeader(String title, IconData icon) {
+    return Row(
+      children: [
+        Icon(icon, size: 18, color: AppColors.primary),
+        const SizedBox(width: 8),
+        Text(
+          title,
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+            color: Colors.grey.shade800,
+          ),
+        ),
+      ],
+    );
+  }
 }
+
+

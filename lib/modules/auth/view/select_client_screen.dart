@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../../../core/constants/app_colors.dart';
 import '../../../core/routes/route_names.dart';
 import '../../../core/utils/snackbar_util.dart';
 import 'package:shimmer/shimmer.dart';
@@ -119,8 +118,6 @@ class _SelectClientScreenState extends State<SelectClientScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(height: 48),
-
-              // ── Header Placeholder ──────────────────────────────────────
               Container(
                 width: 200,
                 height: 35,
@@ -218,12 +215,14 @@ class _StyledDropdown extends StatelessWidget {
             return DropdownMenuItem(
               value: org,
               child: Text(
-                org.clientId,
+                '${org.organizationName} (${org.clientId})',
                 style: GoogleFonts.dmSans(
                   fontSize: 15,
                   fontWeight: FontWeight.w500,
                   color: const Color(0xFFF0EEF8),
                 ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
             );
           }).toList(),

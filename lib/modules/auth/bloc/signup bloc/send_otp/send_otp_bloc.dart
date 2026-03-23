@@ -29,7 +29,9 @@
 //   }
 // }
 
+import 'package:dio/dio.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../../../core/services/network_expenssion.dart';
 import '../../../../../core/constants/app_keys.dart';
 import '../../../../../core/services/secure_storage_service.dart';
 import '../../../models/registration/requests/send_email_otp_request_model.dart';
@@ -66,7 +68,11 @@ class SendOtpBloc extends Bloc<SendOtpEvent, SendOtpState> {
     Emitter<SendOtpState> emit,
   ) async {
     try {
-      emit(state.copyWith(isLoading: true, isSuccess: false));
+      emit(state.copyWith(
+        isLoading: true,
+        isSuccess: false,
+        errorMessage: null,
+      ));
 
       final storage = SecureStorageService.instance;
       final clientId = await storage.read(AppKeys.clientId) ?? "778205";
@@ -81,9 +87,16 @@ class SendOtpBloc extends Bloc<SendOtpEvent, SendOtpState> {
         final response = await emailRepository.sendemailOtp(request);
 
         if (response.success == true) {
-          emit(state.copyWith(isLoading: false, isSuccess: true));
+          emit(state.copyWith(
+            isLoading: false,
+            isSuccess: true,
+            errorMessage: null,
+          ));
         } else {
-          emit(state.copyWith(isLoading: false));
+          emit(state.copyWith(
+            isLoading: false,
+            errorMessage: response.message,
+          ));
         }
       } else {
         /// 🔥 Create request model for Mobile
@@ -103,13 +116,23 @@ class SendOtpBloc extends Bloc<SendOtpEvent, SendOtpState> {
         final response = await mobileRepository.sendmobileotp(request);
 
         if (response.success == true) {
-          emit(state.copyWith(isLoading: false, isSuccess: true));
+          emit(state.copyWith(
+            isLoading: false,
+            isSuccess: true,
+            errorMessage: null,
+          ));
         } else {
-          emit(state.copyWith(isLoading: false));
+          emit(state.copyWith(
+            isLoading: false,
+            errorMessage: response.message,
+          ));
         }
       }
+    } on DioException catch (e) {
+      final msg = NetworkExceptions.getErrorMessage(e);
+      emit(state.copyWith(isLoading: false, errorMessage: msg));
     } catch (e) {
-      emit(state.copyWith(isLoading: false));
+      emit(state.copyWith(isLoading: false, errorMessage: e.toString()));
     }
   }
 }

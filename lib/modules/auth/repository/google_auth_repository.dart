@@ -2,9 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:dio/dio.dart';
 import '../../../core/constants/api_constants.dart';
-import '../../../core/constants/app_keys.dart';
 import '../../../core/services/api_services.dart';
-import '../../../core/services/secure_storage_service.dart';
 import '../models/google login/request/send_email_request.dart';
 import '../models/google login/response/send_email_response.dart';
 import '../models/google_user_model.dart';
@@ -16,7 +14,7 @@ class GoogleAuthRepository {
   GoogleAuthRepository({FirebaseAuth? firebaseAuth, GoogleSignIn? googleSignIn})
     : _firebaseAuth = firebaseAuth ?? FirebaseAuth.instance,
       _googleSignIn = googleSignIn ?? GoogleSignIn();
-
+final Dio _dio = ApiService.dio;
 Future<GoogleUserModel?> signInWithGoogle() async {
   // Force the account selection dialog by signing out first
   await _googleSignIn.signOut();
@@ -47,23 +45,18 @@ Future<GoogleUserModel?> signInWithGoogle() async {
   );
 }
 
-Future<EmailCheckResponse> checkGoogleEmail(String email) async {
-  final storage = SecureStorageService.instance;
-  final clientId = await storage.read(AppKeys.clientId) ?? '';
+  Future<GoogleSignInResponse> googleSignIn(
+    GoogleSignInRequest request,
+  ) async {
+    final response = await _dio.post(
+      ApiConstants.googleLogin, // 🔥 create this endpoint
+      data: request.toJson(),
+      // options: Options(extra: {"skipClientId": true}),
+    );
 
-  final request = SendEmailOtpRequestModel(
-    email: email,
-    clientId: clientId,
-  );
+    return GoogleSignInResponse.fromJson(response.data);
+  }
 
-  final response = await ApiService.dio.post(
-    ApiConstants.checkEmail,
-    data: request.toJson(),
-    options: Options(extra: {'skipClientId': false}),
-  );
-
-  return EmailCheckResponse.fromJson(response.data);
-}
   Future<void> signOut() async {
     try {
       await Future.wait([_firebaseAuth.signOut(), _googleSignIn.signOut()]);

@@ -537,10 +537,7 @@ class LogoutButton extends StatelessWidget {
               ),
             ),
             onPressed: () async {
-              // 1. Clear Secure Storage
               await SecureStorageService.instance.deleteAll();
-
-              // 2. Sign out from Google/Firebase
               try {
                 final googleRepo = GoogleAuthRepository();
                 await googleRepo.signOut();
@@ -550,7 +547,7 @@ class LogoutButton extends StatelessWidget {
               if (context.mounted) {
                 Navigator.pushNamedAndRemoveUntil(
                   context,
-                  RouteNames.signinMethodsScreen,
+                  RouteNames.selectClientScreen,
                   (route) => false,
                 );
               }

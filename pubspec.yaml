@@ -54,6 +54,11 @@ dependencies:
   audioplayers: ^6.6.0
   path_provider: ^2.1.5
   permission_handler: ^11.3.1
+  audio_session: ^0.2.3
+  just_audio: ^0.10.5
+  flutter_webrtc: ^1.4.0
+  geolocator: ^14.0.2
+  flutter_html: ^3.0.0
 
 dev_dependencies:
   flutter_test:

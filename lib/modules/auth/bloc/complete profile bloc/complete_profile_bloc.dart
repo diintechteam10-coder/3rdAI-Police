@@ -84,6 +84,12 @@ class CompleteProfileBloc
             print("-----------------------------------------");
           }
 
+          // Save email for status checks
+          await SecureStorageService.instance.write(
+            key: AppKeys.email,
+            value: state.email,
+          );
+
           emit(state.copyWith(isLoading: false, isSuccess: true));
         } else {
           emit(

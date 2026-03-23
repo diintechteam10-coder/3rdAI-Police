@@ -7,6 +7,7 @@ class SendOtpState {
   final OtpChannel channel;
   final bool isLoading;
   final bool isSuccess;
+  final String? errorMessage;
 
   const SendOtpState({
     required this.type,
@@ -15,6 +16,7 @@ class SendOtpState {
     this.channel = OtpChannel.whatsapp,
     this.isLoading = false,
     this.isSuccess = false,
+    this.errorMessage,
   });
 
   SendOtpState copyWith({
@@ -24,6 +26,7 @@ class SendOtpState {
     OtpChannel? channel,
     bool? isLoading,
     bool? isSuccess,
+    String? errorMessage,
   }) {
     return SendOtpState(
       type: type ?? this.type,
@@ -32,6 +35,7 @@ class SendOtpState {
       channel: channel ?? this.channel,
       isLoading: isLoading ?? this.isLoading,
       isSuccess: isSuccess ?? this.isSuccess,
+      errorMessage: errorMessage,
     );
   }
 }

@@ -81,9 +81,11 @@
 
 
 
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/constants/app_keys.dart';
 import '../../../../core/services/secure_storage_service.dart';
+import '../../models/google login/request/send_email_request.dart';
 import '../../repository/google_auth_repository.dart';
 import 'google_auth_event.dart';
 import 'google_auth_state.dart';
@@ -97,45 +99,66 @@ class GoogleSignInBloc extends Bloc<GoogleSignInEvent, GoogleSignInState> {
     on<OnGoogleSignInPressed>(_onGoogleSignInPressed);
   }
 
-  Future<void> _onGoogleSignInPressed(
-    OnGoogleSignInPressed event,
-    Emitter<GoogleSignInState> emit,
-  ) async {
-    emit(GoogleSignInLoading());
-
+  Future<GoogleSignInAccount?> getGoogleUser() async {
     try {
-      print("🎯 [BLOC] Google Sign-In Started");
-
-      // 1. Get user from Google/Firebase
-      final user = await _repository.signInWithGoogle();
-      
-      if (user == null) {
-        print("⚠️ [BLOC] Google Sign-In cancelled by user");
-        emit(const GoogleSignInError("Google Sign-In cancelled."));
-        return;
-      }
-
-      print("📧 [BLOC] Email obtained: ${user.email}");
-
-      // 2. Get clientId from storage (or use default)
-      final storage = SecureStorageService.instance;
-      final clientId = await storage.read(AppKeys.clientId) ?? '778205';
-      print("🆔 [BLOC] Using ClientId: $clientId");
-
-     
-      final backendResponse = await _repository.checkGoogleEmail(user.email ?? "");
-      print("🌐 BACKEND CHECK SUCCESS: ${backendResponse.message}");
-
-      if (backendResponse.success) {
-        print("✅ [BLOC] Backend Verification Success");
-        emit(GoogleSignInSuccess(backendResponse));
-      } else {
-        print("❌ [BLOC] Backend Verification Failed: ${backendResponse.message}");
-        emit(GoogleSignInError(backendResponse.message));
-      }
+      final GoogleSignIn googleSignIn = GoogleSignIn();
+      // Force account picker every time
+      await googleSignIn.signOut(); 
+      return await googleSignIn.signIn();
     } catch (e) {
-      print("🚨 [BLOC] Unhandled Error: $e");
-      emit(GoogleSignInError("An error occurred during Google Sign-In: ${e.toString()}"));
+      print("🚨 [SDK ERROR] $e");
+      return null;
     }
   }
+
+  Future<void> _onGoogleSignInPressed(
+  OnGoogleSignInPressed event,
+  Emitter<GoogleSignInState> emit,
+) async {
+  emit(GoogleSignInLoading());
+
+  try {
+    print("🎯 Google Sign-In Started");
+
+    // ✅ STEP 1: Firebase + Google login
+    final user = await _repository.signInWithGoogle();
+
+    if (user == null) {
+      emit(const GoogleSignInError("Google Sign-In cancelled."));
+      return;
+    }
+
+    print("📧 Firebase Email: ${user.email}");
+
+    // ✅ STEP 2: clientId
+    final storage = SecureStorageService.instance;
+    final clientId = await storage.read(AppKeys.clientId) ?? '778205';
+
+    // ✅ STEP 3: API request
+    final request = GoogleSignInRequest(
+      email: user.email ?? "",
+      clientId: clientId,
+    );
+
+    final response = await _repository.googleSignIn(request);
+
+    // ✅ STEP 4: Handle response
+    if (response.success) {
+      if (response.registrationComplete) {
+        final token = response.data.token;
+
+        if (token != null) {
+          await storage.write(key: AppKeys.token, value: token);
+          await storage.write(key: "loginType", value: "google"); // 🔥 IMPORTANT
+        }
+      }
+
+      emit(GoogleSignInSuccess(response));
+    } else {
+      emit(GoogleSignInError(response.message));
+    }
+  } catch (e) {
+    emit(GoogleSignInError(e.toString()));
+  }
+}
 }

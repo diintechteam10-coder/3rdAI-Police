@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../bloc/request_bloc.dart';
 import '../bloc/request_event.dart';
 import '../models/request_type.dart';
+import '../../../../core/routes/route_names.dart';
 
 class RequestScreen extends StatelessWidget {
   const RequestScreen({super.key});
@@ -39,9 +40,6 @@ class RequestScreen extends StatelessWidget {
   }
 }
 
-////////////////////////////////////////////////////////////
-/// 🔥 MODERN ADMIN REQUEST CARD
-////////////////////////////////////////////////////////////
 
 class ModernRequestCard extends StatelessWidget {
   final RequestType type;
@@ -87,12 +85,16 @@ class ModernRequestCard extends StatelessWidget {
       onTap: () {
         context.read<RequestBloc>().add(SelectRequest(type));
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            backgroundColor: const Color(0xFF1F2937),
-            content: Text("${type.title} Selected"),
-          ),
-        );
+        if (type == RequestType.footage) {
+          Navigator.pushNamed(context, RouteNames.footageRequestMap);
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              backgroundColor: const Color(0xFF1F2937),
+              content: Text("${type.title} Selected"),
+            ),
+          );
+        }
       },
       child: Container(
         padding: const EdgeInsets.all(18),
@@ -101,7 +103,7 @@ class ModernRequestCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.4),
+              color: Colors.black.withValues(alpha: 0.4),
               blurRadius: 12,
               offset: const Offset(0, 6),
             ),
@@ -113,7 +115,7 @@ class ModernRequestCard extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                color: getAccentColor().withOpacity(0.15),
+                color: getAccentColor().withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(14),
               ),
               child: Icon(getIcon(), color: getAccentColor(), size: 28),

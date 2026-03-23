@@ -43,7 +43,7 @@ class GoogleSignInInitial extends GoogleSignInState {}
 class GoogleSignInLoading extends GoogleSignInState {}
 
 class GoogleSignInSuccess extends GoogleSignInState {
-  final EmailCheckResponse response;
+  final GoogleSignInResponse response;
   const GoogleSignInSuccess(this.response);
 
   @override

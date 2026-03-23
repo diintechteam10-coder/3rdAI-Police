@@ -5,25 +5,44 @@ import '../../../core/routes/auth_route_observer.dart';
 import '../../../core/routes/route_names.dart';
 import '../../../core/services/secure_storage_service.dart';
 import '../../auth/view/registration view/otp_type.dart';
+import '../../auth/repository/approval_status_repo.dart';
 import 'splash_event.dart';
 import 'splash_state.dart';
 
 class SplashBloc extends Bloc<SplashEvent, SplashState> {
-  SplashBloc() : super(SplashInitial()) {
+  final ApprovalStatusRepo repository;
+
+  SplashBloc({required this.repository}) : super(SplashInitial()) {
     on<StartSplashEvent>((event, emit) async {
       await Future.delayed(const Duration(seconds: 3));
 
       final storage = SecureStorageService.instance;
 
       final token = await storage.read(AppKeys.token);
+      final email = await storage.read(AppKeys.email);
       final clientId = await storage.read(AppKeys.clientId);
 
       print("🚀 --- STATUS FETCHED IN SPLASH SCREEN --- 🚀");
       print("Token: ${token ?? "No token"}");
+      print("Email: ${email ?? "No email"}");
       print("🏢 STORED CLIENT ID: ${clientId ?? "No Client ID"}");
       print("------------------------------------------");
 
       if (token != null && token.isNotEmpty) {
+        if (email != null && email.isNotEmpty) {
+          try {
+            final response = await repository.getApprovalStatus(email);
+            if (response.data?.isVerified == false) {
+              emit(SplashCompleted(
+                nextRoute: RouteNames.approvalStatus,
+                arguments: {'email': email},
+              ));
+              return;
+            }
+          } catch (e) {
+            print("Error checking approval status: $e");
+          }
+        }
         emit(SplashCompleted(nextRoute: RouteNames.bottomNav));
         return;
       }

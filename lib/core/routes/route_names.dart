@@ -8,6 +8,11 @@ class RouteNames {
   static const loginScreen = '/login';
   static const selectClientScreen = '/selectClient';
   static const approvalPendingScreen = '/approvalPending';
+  static const approvalStatus = '/approvalStatus';
   static const bottomNav = '/bottomNav';
   static const googleSignInScreen = '/googleSignIn';
+  static const String footageRequestMap = '/footageRequestMap';
+  static const String forgotPasswordScreen = '/forgotPassword';
+  static const String verifyEmailOtpScreen = '/verifyEmailOtp';
+  static const String resetPasswordScreen = '/resetPassword';
 }

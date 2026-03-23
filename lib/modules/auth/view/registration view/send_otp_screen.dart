@@ -6,7 +6,6 @@ import '../../bloc/signup bloc/send_otp/send_otp_bloc.dart';
 import '../../bloc/signup bloc/send_otp/send_otp_event.dart';
 import '../../bloc/signup bloc/send_otp/send_otp_state.dart';
 import '../../../../widgets/shimmer_widgets.dart';
-
 import 'otp_type.dart';
 
 class SendOtpScreen extends StatefulWidget {
@@ -44,7 +43,27 @@ class _SendOtpScreenState extends State<SendOtpScreen> {
   Widget build(BuildContext context) {
     return BlocListener<SendOtpBloc, SendOtpState>(
       listener: (context, state) {
+        if (state.errorMessage != null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(state.errorMessage!),
+              backgroundColor: Colors.redAccent,
+              behavior: SnackBarBehavior.floating,
+              duration: const Duration(seconds: 4),
+            ),
+          );
+        }
+
         if (state.isSuccess) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text("OTP sent successfully!"),
+              backgroundColor: Colors.green,
+              behavior: SnackBarBehavior.floating,
+              duration: const Duration(seconds: 2),
+            ),
+          );
+
           Navigator.pushNamed(
             context,
             RouteNames.verifyOtpScreen,

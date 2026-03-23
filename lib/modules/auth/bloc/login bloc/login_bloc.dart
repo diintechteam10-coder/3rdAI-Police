@@ -29,12 +29,24 @@ class LoginBloc extends Bloc<LoginEvent, LoginState> {
 
       final response = await loginRepository.login(request);
 
-      if (response.success == true && response.data?.token != null) {
-        // Save token
-        await SecureStorageService.instance.write(
-          key: AppKeys.token,
-          value: response.data!.token!,
-        );
+      final bool isVerified = response.data?.partner?.isVerified ?? false;
+
+      if (response.success == true && (response.data?.token != null || isVerified == false)) {
+        if (response.data?.token != null) {
+          // Save token
+          await SecureStorageService.instance.write(
+            key: AppKeys.token,
+            value: response.data!.token!,
+          );
+        }
+        // Save email for status checks
+        final String? email = response.data?.partner?.email ?? event.email;
+        if (email != null) {
+          await SecureStorageService.instance.write(
+            key: AppKeys.email,
+            value: email,
+          );
+        }
         emit(LoginSuccess(response: response));
       } else {
         emit(LoginFailure(error: response.message ?? 'Login failed'));
