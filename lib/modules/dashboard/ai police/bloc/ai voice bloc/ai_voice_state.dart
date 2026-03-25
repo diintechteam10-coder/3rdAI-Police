@@ -25,7 +25,9 @@ class AiVoiceActive extends AiVoiceState {
 
   final bool isMuted;
   final bool isSpeaking;
-
+  final bool isUserSpeaking;
+  final bool isThinking;
+ 
   final List<ChatMessage> messages;
 
   /// 🔥 TIMING STATES
@@ -38,6 +40,8 @@ class AiVoiceActive extends AiVoiceState {
     required this.sessionId,
     this.isMuted = false,
     this.isSpeaking = false,
+    this.isUserSpeaking = false,
+    this.isThinking = false,
     this.messages = const [],
     this.userStartedSpeakingAt,
     this.aiThinkingStartedAt,
@@ -47,6 +51,8 @@ class AiVoiceActive extends AiVoiceState {
   AiVoiceActive copyWith({
     bool? isMuted,
     bool? isSpeaking,
+    bool? isUserSpeaking,
+    bool? isThinking,
     List<ChatMessage>? messages,
     DateTime? userStartedSpeakingAt,
     DateTime? aiThinkingStartedAt,
@@ -57,6 +63,8 @@ class AiVoiceActive extends AiVoiceState {
       sessionId: sessionId,
       isMuted: isMuted ?? this.isMuted,
       isSpeaking: isSpeaking ?? this.isSpeaking,
+      isUserSpeaking: isUserSpeaking ?? this.isUserSpeaking,
+      isThinking: isThinking ?? this.isThinking,
       messages: messages ?? this.messages,
       userStartedSpeakingAt: userStartedSpeakingAt ?? this.userStartedSpeakingAt,
       aiThinkingStartedAt: aiThinkingStartedAt ?? this.aiThinkingStartedAt,
@@ -70,6 +78,8 @@ class AiVoiceActive extends AiVoiceState {
         sessionId,
         isMuted,
         isSpeaking,
+        isUserSpeaking,
+        isThinking,
         messages,
         userStartedSpeakingAt,
         aiThinkingStartedAt,

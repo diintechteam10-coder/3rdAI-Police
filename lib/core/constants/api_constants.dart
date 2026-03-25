@@ -19,7 +19,8 @@ class ApiConstants {
       "${baseUrl}mobile/partner/register/step3";
   static const String uploadProfilePic =
       "${baseUrl}mobile/partner/register/step4";
-  static const String googleLogin = "${baseUrl}mobile/partner/register/step1/google";
+  static const String googleLogin =
+      "${baseUrl}mobile/partner/register/step1/google";
   static const String login = "${baseUrl}partners/login";
   static const String getOrganizations = "${baseUrl}public/clients/778205";
   static const String getProfile = "${baseUrl}partners/profile";
@@ -42,11 +43,14 @@ class ApiConstants {
   static const String voiceProcess = "${baseUrl}mobile/voice/process";
 
   static const String getGeoArea = "${baseUrl}areas";
+  static const String getCameras = "${baseUrl}cameras";
   static const String approvalStatus = "${baseUrl}partners/approval-status";
 
   // Forgot Password
   static const String forgotPassword = "${baseUrl}auth/partner/forgot-password";
-  static const String verifyResetOtp = "${baseUrl}auth/partner/verify-reset-otp";
+  static const String verifyResetOtp =
+      "${baseUrl}auth/partner/verify-reset-otp";
   static const String resetPassword = "${baseUrl}auth/partner/reset-password";
-  static const String resendResetOtp = "${baseUrl}auth/partner/resend-reset-otp";
+  static const String resendResetOtp =
+      "${baseUrl}auth/partner/resend-reset-otp";
 }

@@ -27,6 +27,7 @@ class VoiceSocketService {
         },
         onDone: () {
           print("🔌 WebSocket connection closed");
+          _eventController.add(SocketClosedEvent());
           _channel = null;
         },
         onError: (error) {
@@ -79,6 +80,17 @@ class VoiceSocketService {
         case 'auth_ok':
           print("✅ WebSocket Authenticated");
           _eventController.add(AuthOkEvent());
+          break;
+        case 'user_message':
+          final event = UserMessageEvent.fromJson(data);
+          print("🎤 FINAL USER: ${event.text}");
+          _eventController.add(event);
+          break;
+        case 'started':
+          print("🚀 Agent Session Started");
+          break;
+        case 'deepgram_connected':
+          print("🔊 Deepgram Connected");
           break;
         case 'error':
           final event = VoiceErrorEvent.fromJson(data);

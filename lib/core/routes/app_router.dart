@@ -37,7 +37,9 @@ import '../../modules/auth/repository/organization_repository.dart';
 import '../../modules/auth/view/select_client_screen.dart';
 import '../../modules/dashboard/requests/bloc/geo_area/geo_area_bloc.dart';
 import '../../modules/dashboard/requests/repository/get_geo_area.dart';
-import '../../modules/dashboard/requests/view/map_view/footage_request_map_screen.dart';
+import '../../modules/dashboard/requests/bloc/camera/camera_bloc.dart';
+import '../../modules/dashboard/requests/repository/get_geo_camera.dart';
+import '../../modules/dashboard/requests/view/map_view/footage_request_tabs_screen.dart';
 import '../../modules/auth/bloc/approval_status_bloc/approval_status_bloc.dart';
 import '../../modules/auth/repository/approval_status_repo.dart';
 import '../../modules/auth/view/approval_status_view.dart';
@@ -218,9 +220,16 @@ class AppRouter {
 
       case RouteNames.footageRequestMap:
         return MaterialPageRoute(
-          builder: (_) => BlocProvider(
-            create: (_) => GeoAreaBloc(repository: GetGeoAreaRepository()),
-            child: const FootageRequestMapScreen(),
+          builder: (_) => MultiBlocProvider(
+            providers: [
+              BlocProvider(
+                create: (_) => GeoAreaBloc(repository: GetGeoAreaRepository()),
+              ),
+              BlocProvider(
+                create: (_) => CameraBloc(repository: CameraRepository()),
+              ),
+            ],
+            child: const FootageRequestTabsScreen(),
           ),
         );
 

@@ -1,680 +1,3 @@
-// import 'dart:async';
-// import 'dart:convert';
-// import 'dart:io';
-// import 'dart:typed_data';
-// import 'package:audioplayers/audioplayers.dart';
-// import 'package:path_provider/path_provider.dart';
-// import 'package:record/record.dart';
-
-// class VoiceAudioService {
-//   final AudioRecorder _recorder = AudioRecorder();
-//   final AudioPlayer _player = AudioPlayer();
-
-//   StreamSubscription<Uint8List>? _recordSub;
-
-//   final List<String> _audioChunks = [];
-
-//   bool _isPlaying = false;
-//   bool _isRecording = false;
-
-//   Function()? onSilenceDetected;
-//   Function(String)? _onDataCallback;
-
-//   Timer? _silenceTimer;
-
-//   bool get isPlaying => _isPlaying;
-//   bool get isRecording => _isRecording;
-
-//   /// 🎤 START RECORDING
-//   Future<void> startRecording(Function(String base64Chunk) onData) async {
-//     try {
-//       if (_isRecording) return;
-
-//       if (await _recorder.hasPermission()) {
-//         _onDataCallback = onData;
-
-//         const config = RecordConfig(
-//           encoder: AudioEncoder.pcm16bits,
-//           sampleRate: 16000,
-//           numChannels: 1,
-//         );
-
-//         final stream = await _recorder.startStream(config);
-
-//         _isRecording = true;
-
-//         _recordSub = stream.listen((data) {
-//           final base64Chunk = base64Encode(data);
-//           _onDataCallback?.call(base64Chunk);
-
-//           // 🔥 Reset silence timer
-//           _silenceTimer?.cancel();
-//           _silenceTimer = Timer(const Duration(seconds: 2), () async {
-//             print("🤫 Silence detected → stopping mic");
-//             await stopRecording();
-//             onSilenceDetected?.call();
-//           });
-//         });
-
-//         print("🎤 Recording STARTED");
-//       }
-//     } catch (e) {
-//       print("❌ Recording error: $e");
-//     }
-//   }
-
-//   Future<void> stopRecording() async {
-//     if (!_isRecording) return;
-
-//     await _recordSub?.cancel();
-//     await _recorder.stop();
-//     _silenceTimer?.cancel();
-
-//     _isRecording = false;
-
-//     print("🎤 Recording STOPPED");
-//   }
-
-//   /// 🔊 CLEAR BUFFER
-//   void clearAudioBuffer() {
-//     _audioChunks.clear();
-//   }
-
-//   /// ➕ ADD AI AUDIO
-//   void addAudioChunk(String base64Chunk) {
-//     _audioChunks.add(base64Chunk);
-//   }
-
-//   /// 🔊 PLAY AI AUDIO
-//   Future<void> playBufferedAudio() async {
-//     if (_audioChunks.isEmpty) return;
-
-//     final completer = Completer<void>();
-//     StreamSubscription? completeSub;
-
-//     try {
-//       _isPlaying = true;
-//       print("🔊 Playing AI audio...");
-
-//       final List<int> fullAudio = [];
-//       for (final chunk in _audioChunks) {
-//         fullAudio.addAll(base64Decode(chunk));
-//       }
-
-//       final tempDir = await getTemporaryDirectory();
-//       final file = File('${tempDir.path}/ai.wav');
-
-//       await file.writeAsBytes(fullAudio);
-
-//       completeSub = _player.onPlayerComplete.listen((event) {
-//         print("✅ AI SPEAKING DONE");
-//         _isPlaying = false;
-//         completeSub?.cancel();
-//         if (!completer.isCompleted) completer.complete();
-//       });
-
-//       await _player.play(DeviceFileSource(file.path));
-
-//       // Wait for audio to actually finish
-//       await completer.future;
-
-//     } catch (e) {
-//       _isPlaying = false;
-//       print("❌ Playback error: $e");
-//       completeSub?.cancel();
-//       if (!completer.isCompleted) completer.complete();
-//     }
-//   }
-
-//   Future<void> stopPlayback() async {
-//     await _player.stop();
-//     _isPlaying = false;
-//   }
-
-//   void dispose() {
-//     _recorder.dispose();
-//     _player.dispose();
-//     _recordSub?.cancel();
-//     _silenceTimer?.cancel();
-//   }
-// }
-
-// import 'dart:async';
-// import 'dart:convert';
-// import 'dart:math';
-// import 'package:audio_session/audio_session.dart';
-// import 'package:audioplayers/audioplayers.dart';
-// import 'package:flutter/foundation.dart';
-// import 'package:flutter_webrtc/flutter_webrtc.dart';
-// import 'package:record/record.dart';
-// import 'package:web_socket_channel/web_socket_channel.dart';
-// import 'package:permission_handler/permission_handler.dart';
-// import 'package:path_provider/path_provider.dart';
-// import 'dart:io';
-
-// import '../../../../core/services/secure_storage_service.dart';
-
-// enum VoiceAgentState {
-//   IDLE,
-//   CONNECTING,
-//   LISTENING,
-//   PROCESSING,
-//   SPEAKING,
-//   ERROR,
-// }
-
-// class VoiceAudioService extends ChangeNotifier {
-//   WebSocketChannel? _channel;
-//   final AudioRecorder _recorder = AudioRecorder();
-//   final AudioPlayer _player = AudioPlayer();
-
-//   VoiceAgentState _state = VoiceAgentState.IDLE;
-//   VoiceAgentState get state => _state;
-
-//   String _errorMessage = "";
-//   String get errorMessage => _errorMessage;
-
-//   String _interimText = "";
-//   String get interimText => _interimText;
-
-//   String _aiText = "";
-//   String get aiText => _aiText;
-
-//   // Audio Playback
-//   final List<int> _audioBytesAccumulator = [];
-//   final List<File> _tempAudioFiles = [];
-//   StreamSubscription? _audioCompletionSubscription;
-//   StreamSubscription? _recordSub;
-
-//   // History Sync Callbacks
-//   Function(String chatId)? onChatCreated;
-//   Function(String text)? onUserMessage;
-//   Function(String text)? onAiResponse;
-
-//   String? _currentUserId;
-//   String? _currentChatId;
-
-//   // Enhance VAD: Add 'hasVoiceActivity' flag
-//   bool _hasVoiceActivity = false;
-//   DateTime? _lastVoiceActivity;
-
-//   // Tuning silence threshold and timeout as requested
-//   final double silenceThreshold = 0.02;
-//   final Duration silenceTimeout = const Duration(milliseconds: 2000);
-
-//   // Timeouts for stuck states
-//   Timer? _processingTimeoutTimer;
-//   Timer? _emptyTurnTimer;
-
-//   bool _isIntentionalClose = false;
-
-//   void _setState(VoiceAgentState newState) {
-//     if (_state != newState) {
-//       _state = newState;
-//       debugPrint('[VoiceAgent] State changed: ${newState.name}');
-//       notifyListeners();
-//     }
-//   }
-
-//   Future<void> startSession(String userId, {String? chatId}) async {
-//     if (_state != VoiceAgentState.IDLE && _state != VoiceAgentState.ERROR) {
-//       debugPrint('[VoiceAgent] Already active');
-//       return;
-//     }
-
-//     _isIntentionalClose = false;
-//     _currentUserId = userId;
-//     _currentChatId = chatId;
-
-//     final micStatus = await Permission.microphone.request();
-//     if (micStatus != PermissionStatus.granted) {
-//       _errorMessage = "Microphone permission denied";
-//       _setState(VoiceAgentState.ERROR);
-//       return;
-//     }
-
-//     _setState(VoiceAgentState.CONNECTING);
-//     _errorMessage = "";
-//     _interimText = "";
-//     _aiText = "";
-//     _audioBytesAccumulator.clear();
-
-//     await _connectWebSocket();
-//   }
-
-//   Future<void> _connectWebSocket({bool isReconnect = false}) async {
-//     try {
-//       final token = SecureStorageService.read('token');
-//       final wsUrl = token != null && token.isNotEmpty
-//           ? 'wss://prod.brahmakosh.com/api/voice/agent?token=$token'
-//           : 'wss://prod.brahmakosh.com/api/voice/agent';
-
-//       debugPrint('[VoiceAgent] Connecting to $wsUrl ...');
-//       _channel = WebSocketChannel.connect(Uri.parse(wsUrl));
-//       debugPrint('socket connected');
-
-//       _channel!.stream.listen(
-//         _handleMessage,
-//         onError: (error) {
-//           debugPrint('[VoiceAgent] WebSocket Error: $error');
-//           _errorMessage = 'WebSocket Error: $error';
-//           _setState(VoiceAgentState.ERROR);
-//         },
-//         onDone: () {
-//           final closeCode = _channel?.closeCode;
-//           final closeReason = _channel?.closeReason;
-//           debugPrint(
-//             '[VoiceAgent] WebSocket stream onDone triggered. Intentional: $_isIntentionalClose. Reason: $closeReason, Code: $closeCode',
-//           );
-
-//           // Add WebSocket auto-reconnect on onDone (unless intentional close).
-//           if (!_isIntentionalClose) {
-//             debugPrint('[VoiceAgent] Unexpected close. Reconnecting in 1s...');
-//             Future.delayed(const Duration(milliseconds: 1000), () {
-//               if (!_isIntentionalClose) {
-//                 _connectWebSocket(isReconnect: true);
-//               }
-//             });
-//           }
-//         },
-//       );
-
-//       // Send start message ONLY once per session or on reconnect
-//       if (_currentUserId != null) {
-//         final agentId = SecureStorageService.read('ai_selected_agent_id');
-
-//         final selectedVoice = SecureStorageService.read('ai_selected_voice');
-//         final payload = {
-//           "type": "start",
-//           "userId": _currentUserId,
-//           "chatId": _currentChatId ?? "new",
-//           "agentId": agentId,
-//           // "voice": selectedVoice,
-//         };
-//         _sendWSMessage(payload);
-//       }
-//     } catch (e) {
-//       debugPrint('[VoiceAgent] Connection Exception: $e');
-//       _errorMessage = 'Connection Exception: $e';
-//       _setState(VoiceAgentState.ERROR);
-//       _cleanup(closeWebSocket: false); // Never close the socket automatically
-//     }
-//   }
-
-//   void _sendWSMessage(Map<String, dynamic> payload) {
-//     if (_channel != null && _channel?.closeCode == null) {
-//       final jsonPayload = jsonEncode(payload);
-//       if (payload["type"] != "audio") {
-//         debugPrint('[VoiceAgent] Sending: ${payload["type"]}');
-//       }
-//       _channel!.sink.add(jsonPayload);
-//     } else {
-//       debugPrint(
-//         '[VoiceAgent] Cannot send, channel is null or closed. Payload type: ${payload["type"]}',
-//       );
-//     }
-//   }
-
-//   Future<void> _startMicrophone() async {
-//     try {
-//       if (await _recorder.isRecording() || _player.playing) {
-//         debugPrint(
-//           '[VoiceAgent] Microphone is already recording or audio is still playing.',
-//         );
-//         return;
-//       }
-
-//       if (await _recorder.hasPermission()) {
-//         debugPrint('[VoiceAgent] Starting microphone recording...');
-
-//         _hasVoiceActivity = false;
-//         _lastVoiceActivity = DateTime.now();
-
-//         // Configure AudioSession for iOS Loudspeaker output
-//         try {
-//           final session = await AudioSession.instance;
-//           await session.configure(
-//             AudioSessionConfiguration(
-//               avAudioSessionCategory: AVAudioSessionCategory.playAndRecord,
-//               avAudioSessionCategoryOptions:
-//                   AVAudioSessionCategoryOptions.defaultToSpeaker,
-//               avAudioSessionMode: AVAudioSessionMode.videoChat,
-//               androidAudioAttributes: const AndroidAudioAttributes(
-//                 contentType: AndroidAudioContentType.speech,
-//                 flags: AndroidAudioFlags.none,
-//                 usage: AndroidAudioUsage.voiceCommunication,
-//               ),
-//               androidAudioFocusGainType: AndroidAudioFocusGainType.gain,
-//             ),
-//           );
-//           await session.setActive(true);
-
-//           // Explicitly set speakerphone ON using flutter_webrtc Helper
-//           await Helper.setSpeakerphoneOn(true);
-
-//           debugPrint(
-//             '[VoiceAgent] AudioSession configured for loudspeaker using videoChat mode.',
-//           );
-//         } catch (e) {
-//           debugPrint('[VoiceAgent] AudioSession Error: $e');
-//         }
-//         // Start empty turn timeout (10s reset if no voice)
-//         _startEmptyTurnTimer();
-
-//         final stream = await _recorder.startStream(
-//           const RecordConfig(
-//             encoder: AudioEncoder.pcm16bits,
-//             sampleRate: 16000,
-//             numChannels: 1,
-//           ),
-//         );
-
-//         // Align state transition: LISTENING on started/audio_complete
-//         _setState(VoiceAgentState.LISTENING);
-//         _recordSub = stream.listen((data) {
-//           _sendAudioChunk(data);
-//         });
-//       }
-//     } catch (e) {
-//       debugPrint('[VoiceAgent] Mic Error: $e');
-//       _errorMessage = 'Mic Error: $e';
-//       _setState(VoiceAgentState.ERROR);
-//     }
-//   }
-
-//   void _startEmptyTurnTimer() {
-//     _emptyTurnTimer?.cancel();
-//     _emptyTurnTimer = Timer(const Duration(seconds: 10), () {
-//       if (_state == VoiceAgentState.LISTENING && !_hasVoiceActivity) {
-//         debugPrint(
-//           '[VoiceAgent] Empty turn timeout reached. Resetting listening state...',
-//         );
-//         _startEmptyTurnTimer();
-//       }
-//     });
-//   }
-
-//   double _calculateRMS(Uint8List bytes) {
-//     if (bytes.isEmpty) return 0.0;
-//     double sumOfSquares = 0.0;
-//     final int samples = bytes.length ~/ 2;
-//     for (int i = 0; i < bytes.length - 1; i += 2) {
-//       int sample = bytes[i] | (bytes[i + 1] << 8);
-//       if (sample >= 32768) {
-//         sample -= 65536;
-//       }
-//       double normalized = sample / 32768.0;
-//       sumOfSquares += normalized * normalized;
-//     }
-//     return sqrt(sumOfSquares / samples);
-//   }
-
-//   Future<void> _stopMicrophone() async {
-//     debugPrint('[VoiceAgent] Pausing Microphone...');
-//     await _recordSub?.cancel();
-//     _recordSub = null;
-//     if (await _recorder.isRecording()) {
-//       await _recorder.stop();
-//     }
-//     _emptyTurnTimer?.cancel();
-//   }
-
-//   void _sendAudioChunk(Uint8List bytes) async {
-//     if (_state != VoiceAgentState.LISTENING) return;
-
-//     double rms = _calculateRMS(bytes);
-//     if (rms > silenceThreshold) {
-//       if (!_hasVoiceActivity) {
-//         debugPrint('[VoiceAgent] Voice activity started.');
-//       }
-//       _hasVoiceActivity = true;
-//       _lastVoiceActivity = DateTime.now();
-//     } else if (_hasVoiceActivity && _lastVoiceActivity != null) {
-//       // Only check silence timeout if voice was actually detected
-//       final silenceDuration = DateTime.now().difference(_lastVoiceActivity!);
-//       if (silenceDuration > silenceTimeout) {
-//         debugPrint(
-//           '[VoiceAgent] Local silence detected after voice activity. Waiting for server to send user_message...',
-//         );
-
-//         await _stopMicrophone(); // _sendWSMessage({"type": "stop"});
-//         // Setup a 10s timeout after local silence if no server response
-//         _processingTimeoutTimer?.cancel();
-//         _processingTimeoutTimer = Timer(const Duration(seconds: 10), () {
-//           if (_state == VoiceAgentState.LISTENING ||
-//               _state == VoiceAgentState.PROCESSING) {
-//             debugPrint(
-//               '[VoiceAgent] Stuck state timeout reached after local silence. No server response. Restarting mic...',
-//             );
-//             _setState(VoiceAgentState.LISTENING);
-//             _startMicrophone();
-//           }
-//         });
-//         return;
-//       }
-//     }
-//     debugPrint("🎤 AUDIO CHUNK SENT: ${bytes.length}");
-//     final base64Audio = base64Encode(bytes);
-//     final payload = {"type": "audio", "audio": base64Audio};
-//     _sendWSMessage(payload);
-//   }
-
-//   void stopSession() {
-//     debugPrint('[VoiceAgent] Stopping session (Screen Exit)...');
-//     debugPrint('🔴 USER DISCONNECTED SOCKET');
-
-//     _isIntentionalClose = true;
-//     _sendWSMessage({"type": "stop"});
-//     _cleanup(closeWebSocket: true);
-//     _setState(VoiceAgentState.IDLE);
-//   }
-
-//   void _handleMessage(dynamic message) {
-//     try {
-//       final data = jsonDecode(message);
-//       final type = data['type'];
-//       if (type != 'audio_chunk') {
-//         debugPrint('[VoiceAgent] Received WS Message: $type');
-//       }
-
-//       switch (type) {
-//         case 'deepgram_connected':
-//           debugPrint(
-//             '[VoiceAgent] Deepgram connected. Waiting for started event.',
-//           );
-//           break;
-
-//         case 'started':
-//           debugPrint('[VoiceAgent] Agent started. Turning on mic.');
-//           if (data['chatId'] != null) {
-//             _currentChatId = data['chatId'].toString();
-//             onChatCreated?.call(_currentChatId!);
-//           }
-//           _startMicrophone();
-//           break;
-
-//         case 'transcript':
-//           _onTranscript(data);
-//           break;
-
-//         case 'user_message':
-//           debugPrint('[VoiceAgent] User message: ${data['text']}');
-//           _processingTimeoutTimer?.cancel(); // Server responded!
-
-//           if (data['text'] != null && data['text'].toString().isNotEmpty) {
-//             onUserMessage?.call(data['text'].toString());
-//           }
-
-//           _stopMicrophone();
-
-//           _setState(VoiceAgentState.PROCESSING);
-//           break;
-
-//         case 'ai_response':
-//           debugPrint('[VoiceAgent] Agent processing AI response...');
-//           if (data['text'] != null && data['text'].toString().isNotEmpty) {
-//             onAiResponse?.call(data['text'].toString());
-//           }
-//           // Explicitly stop mic when AI starts its response phase
-//           _stopMicrophone();
-//           // State stays PROCESSING until first audio chunk
-//           _onAiResponse(data);
-//           break;
-
-//         case 'audio_chunk':
-//           // debugPrint('🔥 AUDIO CHUNK RECEIVED');
-//           _onAudioChunk(data);
-//           break;
-
-//         case 'audio_complete':
-//           _onAudioComplete(data);
-//           break;
-
-//         case 'error':
-//           debugPrint('[VoiceAgent] Server Error Message: ${data['message']}');
-//           _errorMessage = data['message'] ?? 'Unknown Server Error';
-//           _setState(VoiceAgentState.ERROR);
-//           break;
-
-//         default:
-//           debugPrint('[VoiceAgent] Unhandled message type: $type');
-//       }
-//     } catch (e) {
-//       // Ignored for raw audio or non-json if any
-//     }
-//   }
-
-//   void _onTranscript(Map data) {
-//     final text = data['text'];
-//     final isFinal = data['isFinal'];
-//     debugPrint('[VoiceAgent] Transcript: $text (isFinal: $isFinal)');
-
-//     _interimText = text;
-//     notifyListeners();
-//   }
-
-//   void _onAiResponse(Map data) {
-//     final aiResponseText = data['text'];
-//     debugPrint('[VoiceAgent] AI Response Text: $aiResponseText');
-//     _aiText = aiResponseText;
-//     notifyListeners();
-//   }
-
-//   void _onAudioChunk(Map data) {
-//     // Stop mic during SPEAKING to prevent echo.
-//     if (_state != VoiceAgentState.SPEAKING) {
-//       // Align state transition: SPEAKING on first audio_chunk
-//       _setState(VoiceAgentState.SPEAKING);
-//       _stopMicrophone(); // ensure mic is off
-//     }
-//     final chunkBase64 = data['audio'];
-//     if (chunkBase64 != null) {
-//       final bytes = base64Decode(chunkBase64);
-//       _audioBytesAccumulator.addAll(bytes);
-//     }
-//   }
-
-//   Future<void> _onAudioComplete(Map data) async {
-//     debugPrint(
-//       '[VoiceAgent] Audio complete received. Playing accumulated response.',
-//     );
-
-//     if (_audioBytesAccumulator.isNotEmpty) {
-//       try {
-//         final directory = await getTemporaryDirectory();
-//         final timestamp = DateTime.now().millisecondsSinceEpoch;
-//         final chunkPath = '${directory.path}/agent_full_audio_$timestamp.mp3';
-//         final chunkFile = File(chunkPath);
-
-//         await chunkFile.writeAsBytes(_audioBytesAccumulator);
-//         _tempAudioFiles.add(chunkFile);
-
-//         await _audioCompletionSubscription?.cancel();
-
-//         final completer = Completer<void>();
-//         _audioCompletionSubscription = _player.playerStateStream.listen((
-//           state,
-//         ) {
-//           if (state.processingState == ProcessingState.completed) {
-//             if (!completer.isCompleted) completer.complete();
-//           }
-//         });
-
-//         await _player.setAudioSource(AudioSource.uri(Uri.file(chunkPath)));
-//         await _player.play();
-//         await completer.future;
-//         await _player.stop(); // Reset playing state
-
-//         try {
-//           if (chunkFile.existsSync()) {
-//             chunkFile.delete();
-//             _tempAudioFiles.remove(chunkFile);
-//           }
-//         } catch (e) {
-//           // ignore
-//         }
-//       } catch (e) {
-//         debugPrint('[VoiceAgent] Audio playback error: $e');
-//       }
-
-//       _audioBytesAccumulator.clear();
-//     }
-
-//     debugPrint('[VoiceAgent] Agent finished speaking. Resuming listening...');
-//     _interimText = "";
-
-//     if (!_player.playing) {
-//       await _startMicrophone();
-//     } else {
-//       await _player.stop();
-//       await _startMicrophone();
-//     }
-//   }
-
-//   Future<void> _cleanup({bool closeWebSocket = true}) async {
-//     debugPrint('[VoiceAgent] Cleanup resources. closeWS=$closeWebSocket');
-//     try {
-//       _emptyTurnTimer?.cancel();
-//       _processingTimeoutTimer?.cancel();
-//       _audioCompletionSubscription?.cancel();
-//       await _recordSub?.cancel();
-//       _recordSub = null;
-//       if (await _recorder.isRecording()) {
-//         await _recorder.stop();
-//       }
-//       if (closeWebSocket && _channel != null) {
-//         _channel!.sink.close();
-//         _channel = null;
-//       }
-//       _audioBytesAccumulator.clear();
-//       await _player.stop(); // Stop audio playback immediately
-
-//       for (var file in _tempAudioFiles) {
-//         try {
-//           if (file.existsSync()) file.delete();
-//         } catch (_) {}
-//       }
-//       _tempAudioFiles.clear();
-//     } catch (e) {
-//       debugPrint('[VoiceAgent] Cleanup error: $e');
-//     }
-//   }
-
-//   @override
-//   void dispose() {
-//     _isIntentionalClose = true;
-//     _cleanup(closeWebSocket: true);
-//     _player.dispose();
-//     _recorder.dispose();
-//     super.dispose();
-//   }
-// }
-
-
-
-
-
-
 import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
@@ -683,12 +6,9 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:record/record.dart';
-import 'package:web_socket_channel/web_socket_channel.dart';
-import 'package:permission_handler/permission_handler.dart';
 import 'package:path_provider/path_provider.dart';
 import 'dart:io';
 
-import '../../../../core/services/secure_storage_service.dart';
 enum VoiceAgentState {
   IDLE,
   CONNECTING,
@@ -699,8 +19,7 @@ enum VoiceAgentState {
 }
 
 class VoiceAudioService extends ChangeNotifier {
-  WebSocketChannel? _channel;
-  final AudioRecorder _recorder = AudioRecorder();
+  AudioRecorder? _recorder = AudioRecorder();
   final AudioPlayer _player = AudioPlayer();
 
   VoiceAgentState _state = VoiceAgentState.IDLE;
@@ -715,34 +34,21 @@ class VoiceAudioService extends ChangeNotifier {
   String _aiText = "";
   String get aiText => _aiText;
 
-  // Audio Playback
   final List<int> _audioBytesAccumulator = [];
   final List<File> _tempAudioFiles = [];
   StreamSubscription? _audioCompletionSubscription;
   StreamSubscription? _recordSub;
 
-  // History Sync Callbacks
-  Function(String chatId)? onChatCreated;
-  Function(String text)? onUserMessage;
-  Function(String text)? onAiResponse;
+  // Callbacks
   Function()? onSilenceDetected;
 
-  String? _currentUserId;
-  String? _currentChatId;
-
-  // Enhance VAD: Add 'hasVoiceActivity' flag
-  bool _hasVoiceActivity = false;
-  DateTime? _lastVoiceActivity;
-
-  // Tuning silence threshold and timeout as requested
+  // Tuning silence threshold and timeout
   final double silenceThreshold = 0.02;
   final Duration silenceTimeout = const Duration(milliseconds: 2000);
 
-  // Timeouts for stuck states
-  Timer? _processingTimeoutTimer;
-  Timer? _emptyTurnTimer;
-
-  bool _isIntentionalClose = false;
+  // VAD flags
+  bool _hasVoiceActivity = false;
+  DateTime? _lastVoiceActivity;
 
   void _setState(VoiceAgentState newState) {
     if (_state != newState) {
@@ -752,124 +58,29 @@ class VoiceAudioService extends ChangeNotifier {
     }
   }
 
-  Future<void> startSession(String userId, {String? chatId}) async {
-    if (_state != VoiceAgentState.IDLE && _state != VoiceAgentState.ERROR) {
-      debugPrint('[VoiceAgent] Already active');
-      return;
-    }
-
-    _isIntentionalClose = false;
-    _currentUserId = userId;
-    _currentChatId = chatId;
-
-    final micStatus = await Permission.microphone.request();
-    if (micStatus != PermissionStatus.granted) {
-      _errorMessage = "Microphone permission denied";
-      _setState(VoiceAgentState.ERROR);
-      return;
-    }
-
-    _setState(VoiceAgentState.CONNECTING);
-    _errorMessage = "";
-    _interimText = "";
-    _aiText = "";
-    _audioBytesAccumulator.clear();
-
-    await _connectWebSocket();
-  }
-
-  Future<void> _connectWebSocket({bool isReconnect = false}) async {
+  Future<void> _startMicrophone(Function(String chunk)? onData) async {
     try {
-      final token = await SecureStorageService.instance.read('token');
-      final wsUrl = token != null && token.isNotEmpty
-          ? 'wss://stage.3rdai.co/api/voice/agent?token=$token'
-          : 'wss://stage.3rdai.co/api/voice/agent';
-      debugPrint('[VoiceAgent] Connecting to $wsUrl ...');
-      _channel = WebSocketChannel.connect(Uri.parse(wsUrl));
-      debugPrint('socket connected');
-
-      _channel!.stream.listen(
-        _handleMessage,
-        onError: (error) {
-          debugPrint('[VoiceAgent] WebSocket Error: $error');
-          _errorMessage = 'WebSocket Error: $error';
-          _setState(VoiceAgentState.ERROR);
-        },
-        onDone: () {
-          final closeCode = _channel?.closeCode;
-          final closeReason = _channel?.closeReason;
-          debugPrint(
-            '[VoiceAgent] WebSocket stream onDone triggered. Intentional: $_isIntentionalClose. Reason: $closeReason, Code: $closeCode',
-          );
-
-          // Add WebSocket auto-reconnect on onDone (unless intentional close).
-          if (!_isIntentionalClose) {
-            debugPrint('[VoiceAgent] Unexpected close. Reconnecting in 1s...');
-            Future.delayed(const Duration(milliseconds: 1000), () {
-              if (!_isIntentionalClose) {
-                _connectWebSocket(isReconnect: true);
-              }
-            });
-          }
-        },
-      );
-
-      // Send start message ONLY once per session or on reconnect
-      if (_currentUserId != null) {
-        final agentId =
-            await SecureStorageService.instance.read('ai_selected_agent_id');
-
-        final payload = {
-          "type": "start",
-          "userId": _currentUserId,
-          "chatId": _currentChatId ?? "new",
-          "agentId": agentId,
-        };
-        _sendWSMessage(payload);
+      if (_recorder == null) {
+        _recorder = AudioRecorder();
       }
-    } catch (e) {
-      debugPrint('[VoiceAgent] Connection Exception: $e');
-      _errorMessage = 'Connection Exception: $e';
-      _setState(VoiceAgentState.ERROR);
-      _cleanup(closeWebSocket: false); // Never close the socket automatically
-    }
-  }
 
-  void _sendWSMessage(Map<String, dynamic> payload) {
-    if (_channel != null && _channel?.closeCode == null) {
-      final jsonPayload = jsonEncode(payload);
-      if (payload["type"] != "audio") {
-        debugPrint('[VoiceAgent] Sending: ${payload["type"]}');
-      }
-      _channel!.sink.add(jsonPayload);
-    } else {
-      debugPrint(
-        '[VoiceAgent] Cannot send, channel is null or closed. Payload type: ${payload["type"]}',
-      );
-    }
-  }
-
-  Future<void> _startMicrophone() async {
-    try {
-      if (await _recorder.isRecording() || _player.playing) {
-        debugPrint(
-            '[VoiceAgent] Microphone is already recording or audio is still playing.');
+      if (await _recorder!.isRecording() || _player.playing) {
+        debugPrint('[VoiceAgent] Recording or playing already active.');
         return;
       }
 
-      if (await _recorder.hasPermission()) {
+      if (await _recorder!.hasPermission()) {
         debugPrint('[VoiceAgent] Starting microphone recording...');
 
         _hasVoiceActivity = false;
         _lastVoiceActivity = DateTime.now();
 
-        // Configure AudioSession for iOS Loudspeaker output
+        // Configure AudioSession for output
         try {
           final session = await AudioSession.instance;
           await session.configure(AudioSessionConfiguration(
             avAudioSessionCategory: AVAudioSessionCategory.playAndRecord,
-            avAudioSessionCategoryOptions:
-                AVAudioSessionCategoryOptions.defaultToSpeaker,
+            avAudioSessionCategoryOptions: AVAudioSessionCategoryOptions.defaultToSpeaker,
             avAudioSessionMode: AVAudioSessionMode.videoChat,
             androidAudioAttributes: const AndroidAudioAttributes(
               contentType: AndroidAudioContentType.speech,
@@ -879,19 +90,12 @@ class VoiceAudioService extends ChangeNotifier {
             androidAudioFocusGainType: AndroidAudioFocusGainType.gain,
           ));
           await session.setActive(true);
-
-          // Explicitly set speakerphone ON using flutter_webrtc Helper
           await Helper.setSpeakerphoneOn(true);
-
-          debugPrint(
-              '[VoiceAgent] AudioSession configured for loudspeaker using videoChat mode.');
         } catch (e) {
           debugPrint('[VoiceAgent] AudioSession Error: $e');
         }
-        // Start empty turn timeout (10s reset if no voice)
-        _startEmptyTurnTimer();
 
-        final stream = await _recorder.startStream(
+        final stream = await _recorder!.startStream(
           const RecordConfig(
             encoder: AudioEncoder.pcm16bits,
             sampleRate: 16000,
@@ -899,10 +103,9 @@ class VoiceAudioService extends ChangeNotifier {
           ),
         );
 
-        // Align state transition: LISTENING on started/audio_complete
         _setState(VoiceAgentState.LISTENING);
         _recordSub = stream.listen((data) {
-          _sendAudioChunk(data);
+          _processAudioData(data, onData);
         });
       }
     } catch (e) {
@@ -912,17 +115,6 @@ class VoiceAudioService extends ChangeNotifier {
     }
   }
 
-  void _startEmptyTurnTimer() {
-    _emptyTurnTimer?.cancel();
-    _emptyTurnTimer = Timer(const Duration(seconds: 10), () {
-      if (_state == VoiceAgentState.LISTENING && !_hasVoiceActivity) {
-        debugPrint(
-          '[VoiceAgent] Empty turn timeout reached. Resetting listening state...',
-        );
-        _startEmptyTurnTimer();
-      }
-    });
-  }
   double _calculateRMS(Uint8List bytes) {
     if (bytes.isEmpty) return 0.0;
     double sumOfSquares = 0.0;
@@ -937,17 +129,22 @@ class VoiceAudioService extends ChangeNotifier {
     }
     return sqrt(sumOfSquares / samples);
   }
+
   Future<void> _stopMicrophone() async {
     debugPrint('[VoiceAgent] Pausing Microphone...');
     await _recordSub?.cancel();
     _recordSub = null;
-    if (await _recorder.isRecording()) {
-      await _recorder.stop();
+    
+    try {
+      if (_recorder != null && await _recorder!.isRecording()) {
+        await _recorder!.stop();
+      }
+    } catch (e) {
+      debugPrint('[VoiceAgent] Error stopping recorder: $e');
     }
-    _emptyTurnTimer?.cancel();
   }
 
-  void _sendAudioChunk(Uint8List bytes) async {
+  void _processAudioData(Uint8List bytes, Function(String chunk)? onData) {
     if (_state != VoiceAgentState.LISTENING) return;
 
     double rms = _calculateRMS(bytes);
@@ -958,225 +155,100 @@ class VoiceAudioService extends ChangeNotifier {
       _hasVoiceActivity = true;
       _lastVoiceActivity = DateTime.now();
     } else if (_hasVoiceActivity && _lastVoiceActivity != null) {
-      // Only check silence timeout if voice was actually detected
       final silenceDuration = DateTime.now().difference(_lastVoiceActivity!);
       if (silenceDuration > silenceTimeout) {
-        debugPrint(
-          '[VoiceAgent] Local silence detected after voice activity. Waiting for server to send user_message...',
-        );
-
-        await _stopMicrophone();        // _sendWSMessage({"type": "stop"});
+        debugPrint('[VoiceAgent] Local silence detected.');
+        _stopMicrophone();
         onSilenceDetected?.call();
-        // Setup a 10s timeout after local silence if no server response
-        _processingTimeoutTimer?.cancel();
-        _processingTimeoutTimer = Timer(const Duration(seconds: 10), () {
-          if (_state == VoiceAgentState.LISTENING ||
-              _state == VoiceAgentState.PROCESSING) {
-            debugPrint(
-              '[VoiceAgent] Stuck state timeout reached after local silence. No server response. Restarting mic...',
-            );
-            _setState(VoiceAgentState.LISTENING);
-            _startMicrophone(); 
-          }
-        });
         return;
       }
     }
-    debugPrint("🎤 AUDIO CHUNK SENT: ${bytes.length}");
-    final base64Audio = base64Encode(bytes);
-    final payload = {"type": "audio", "audio": base64Audio};
-    _sendWSMessage(payload);
-  }
-
-  void stopSession() {
-    debugPrint('[VoiceAgent] Stopping session (Screen Exit)...');
-     debugPrint('🔴 USER DISCONNECTED SOCKET');
-
-    _isIntentionalClose = true;
-    _sendWSMessage({"type": "stop"});
-    _cleanup(closeWebSocket: true);
-    _setState(VoiceAgentState.IDLE);
-  }
-
-  void _handleMessage(dynamic message) {
-    try {
-      final data = jsonDecode(message);
-      final type = data['type'];
-      if (type != 'audio_chunk') {
-        debugPrint('[VoiceAgent] Received WS Message: $type');
-      }
-
-      switch (type) {
-        case 'deepgram_connected':
-          debugPrint(
-            '[VoiceAgent] Deepgram connected. Waiting for started event.',
-          );
-          break;
-
-        case 'started':
-          debugPrint('[VoiceAgent] Agent started. Turning on mic.');
-          if (data['chatId'] != null) {
-            _currentChatId = data['chatId'].toString();
-            onChatCreated?.call(_currentChatId!);
-          }
-          _startMicrophone();
-          break;
-
-        case 'transcript':
-          _onTranscript(data);
-          break;
-
-        case 'user_message':
-          debugPrint('[VoiceAgent] User message: ${data['text']}');
-          _processingTimeoutTimer?.cancel(); // Server responded!
-
-          if (data['text'] != null && data['text'].toString().isNotEmpty) {
-            onUserMessage?.call(data['text'].toString());
-          }
-
-          _stopMicrophone();
-
-          _setState(VoiceAgentState.PROCESSING);
-          break;
-
-        case 'ai_response':
-          debugPrint('[VoiceAgent] Agent processing AI response...');
-          if (data['text'] != null && data['text'].toString().isNotEmpty) {
-            onAiResponse?.call(data['text'].toString());
-          }
-          // Explicitly stop mic when AI starts its response phase
-          _stopMicrophone();
-          // State stays PROCESSING until first audio chunk
-          _onAiResponse(data);
-          break;
-
-        case 'audio_chunk':
-          // debugPrint('🔥 AUDIO CHUNK RECEIVED');
-          _onAudioChunk(data);
-          break;
-
-        case 'audio_complete':
-          _onAudioComplete(data);
-          break;
-
-        case 'error':
-          debugPrint('[VoiceAgent] Server Error Message: ${data['message']}');
-          _errorMessage = data['message'] ?? 'Unknown Server Error';
-          _setState(VoiceAgentState.ERROR);
-          break;
-
-        default:
-          debugPrint('[VoiceAgent] Unhandled message type: $type');
-      }
-    } catch (e) {
-      // Ignored for raw audio or non-json if any
+    
+    if (onData != null) {
+      final base64Audio = base64Encode(bytes);
+      onData(base64Audio);
     }
   }
 
-  void _onTranscript(Map data) {
-    final text = data['text'];
-    // final isFinal = data['isFinal'];
-    // debugPrint('[VoiceAgent] Transcript: $text (isFinal: $isFinal)');
-
+  // AI Response triggers
+  void updateInterimText(String text) {
     _interimText = text;
     notifyListeners();
   }
 
-  void _onAiResponse(Map data) {
-    final aiResponseText = data['text'];
-    debugPrint('[VoiceAgent] AI Response Text: $aiResponseText');
-    _aiText = aiResponseText;
+  void updateAiText(String text) {
+    _aiText = text;
+    _setState(VoiceAgentState.SPEAKING);
     notifyListeners();
   }
 
-  void _onAudioChunk(Map data) {
-    // Stop mic during SPEAKING to prevent echo.
+  void addAudioChunk(String base64Chunk) {
     if (_state != VoiceAgentState.SPEAKING) {
-      // Align state transition: SPEAKING on first audio_chunk
       _setState(VoiceAgentState.SPEAKING);
-      _stopMicrophone(); // ensure mic is off
+      _stopMicrophone(); // ensure mic is off while AI speaks
     }
-    final chunkBase64 = data['audio'];
-    if (chunkBase64 != null) {
-      final bytes = base64Decode(chunkBase64);
-      _audioBytesAccumulator.addAll(bytes);
-    }
+    final bytes = base64Decode(base64Chunk);
+    _audioBytesAccumulator.addAll(bytes);
   }
 
-  Future<void> _onAudioComplete(Map data) async {
-    debugPrint(
-      '[VoiceAgent] Audio complete received. Playing accumulated response.',
-    );
+  Future<void> playBufferedAudio() async {
+    debugPrint('[VoiceAgent] Audio complete. Playing accumulated response.');
+    if (_audioBytesAccumulator.isEmpty) return;
 
-    if (_audioBytesAccumulator.isNotEmpty) {
-      try {
-        final directory = await getTemporaryDirectory();
-        final timestamp = DateTime.now().millisecondsSinceEpoch;
-        final chunkPath = '${directory.path}/agent_full_audio_$timestamp.mp3';
-        final chunkFile = File(chunkPath);
-
-        await chunkFile.writeAsBytes(_audioBytesAccumulator);
-        _tempAudioFiles.add(chunkFile);
-
-        await _audioCompletionSubscription?.cancel();
-
-        final completer = Completer<void>();
-        _audioCompletionSubscription = _player.playerStateStream.listen((
-          state,
-        ) {
-          if (state.processingState == ProcessingState.completed) {
-            if (!completer.isCompleted) completer.complete();
-          }
-        });
-
-        await _player.setAudioSource(AudioSource.uri(Uri.file(chunkPath)));
-        await _player.play();
-        await completer.future;
-        await _player.stop(); // Reset playing state
-
-        try {
-          if (chunkFile.existsSync()) {
-            chunkFile.delete();
-            _tempAudioFiles.remove(chunkFile);
-          }
-        } catch (e) {
-          // ignore
-        }
-      } catch (e) {
-        debugPrint('[VoiceAgent] Audio playback error: $e');
-      }
-
-      _audioBytesAccumulator.clear();
-    }
-
-    debugPrint('[VoiceAgent] Agent finished speaking. Resuming listening...');
-    _interimText = "";
-
-    if (!_player.playing) {
-      await _startMicrophone();
-    } else {
-      await _player.stop();
-      await _startMicrophone();
-    }
-  }
-
-  Future<void> _cleanup({bool closeWebSocket = true}) async {
-    debugPrint('[VoiceAgent] Cleanup resources. closeWS=$closeWebSocket');
     try {
-      _emptyTurnTimer?.cancel();
-      _processingTimeoutTimer?.cancel();
-      _audioCompletionSubscription?.cancel();
+      final directory = await getTemporaryDirectory();
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final path = '${directory.path}/agent_full_audio_$timestamp.mp3';
+      final file = File(path);
+
+      await file.writeAsBytes(_audioBytesAccumulator);
+      _tempAudioFiles.add(file);
+      _audioBytesAccumulator.clear();
+
+      await _audioCompletionSubscription?.cancel();
+      final completer = Completer<void>();
+      
+      _audioCompletionSubscription = _player.playerStateStream.listen((state) {
+        if (state.processingState == ProcessingState.completed) {
+          if (!completer.isCompleted) completer.complete();
+        }
+      });
+
+      await _player.setAudioSource(AudioSource.uri(Uri.file(path)));
+      await _player.play();
+      await completer.future;
+      await _player.stop();
+
+      try {
+        if (file.existsSync()) {
+          file.delete();
+          _tempAudioFiles.remove(file);
+        }
+      } catch (_) {}
+    } catch (e) {
+      debugPrint('[VoiceAgent] Audio playback error: $e');
+    }
+
+    debugPrint('[VoiceAgent] Agent finished speaking.');
+    _interimText = "";
+    _setState(VoiceAgentState.LISTENING);
+  }
+
+  Future<void> _cleanup() async {
+    debugPrint('[VoiceAgent] Cleanup resources.');
+    try {
+      await _audioCompletionSubscription?.cancel();
       await _recordSub?.cancel();
       _recordSub = null;
-      if (await _recorder.isRecording()) {
-        await _recorder.stop();
+
+      if (_recorder != null) {
+        if (await _recorder!.isRecording()) {
+          await _recorder!.stop();
+        }
       }
-      if (closeWebSocket && _channel != null) {
-        _channel!.sink.close();
-        _channel = null;
-      }
+
       _audioBytesAccumulator.clear();
-      await _player.stop(); // Stop audio playback immediately
+      await _player.stop();
 
       for (var file in _tempAudioFiles) {
         try {
@@ -1191,48 +263,27 @@ class VoiceAudioService extends ChangeNotifier {
 
   @override
   void dispose() {
-    _isIntentionalClose = true;
-    _cleanup(closeWebSocket: true);
+    _cleanup();
     _player.dispose();
-    _recorder.dispose();
+    _recorder?.dispose();
+    _recorder = null;
     super.dispose();
   }
 
-  // Define clearAudioBuffer for AiVoiceBloc consistency
+  // --- External API for Bloc ---
   void clearAudioBuffer() {
     _audioBytesAccumulator.clear();
   }
 
-  // Define addAudioChunk for AiVoiceBloc consistency
-  void addAudioChunk(String base64Chunk) {
-    if (_state != VoiceAgentState.SPEAKING) {
-      _setState(VoiceAgentState.SPEAKING);
-      _stopMicrophone();
-    }
-    final bytes = base64Decode(base64Chunk);
-    _audioBytesAccumulator.addAll(bytes);
-  }
-
-  // Define playBufferedAudio for AiVoiceBloc consistency (this logic is moved to _onAudioComplete in the new stream-based flow, but we can wrap it if Bloc uses it)
-  Future<void> playBufferedAudio() async {
-    await _onAudioComplete({});
-  }
-
-  // Define stopRecording for AiVoiceBloc consistency
   Future<void> stopRecording() async {
     await _stopMicrophone();
   }
 
-  // Define stopPlayback for AiVoiceBloc consistency
   Future<void> stopPlayback() async {
     await _player.stop();
   }
 
-  // define startRecording for AiVoiceBloc consistency
   Future<void> startRecording(Function(String chunk) onData) async {
-    // Note: The new flow handles data internally via _sendAudioChunk
-    // but we can provide this for compatibility if needed.
-    // However, the current Bloc implementation seems to use its own listener.
-    await _startMicrophone();
+    await _startMicrophone(onData);
   }
 }

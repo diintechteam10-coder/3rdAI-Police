@@ -161,3 +161,7 @@ class UserMessageEvent extends VoiceEvent {
     );
   }
 }
+
+class SocketClosedEvent extends VoiceEvent {
+  SocketClosedEvent() : super('socket_closed');
+}

@@ -17,11 +17,16 @@ class OrganizationRepository {
     }
   }
 
-  Future<void> saveClientId(String clientId) async {
+  Future<void> saveClientId(String clientId, String orgName) async {
     await _storage.write(key: AppKeys.clientId, value: clientId);
+    await _storage.write(key: AppKeys.organizationName, value: orgName);
   }
 
   Future<String?> getSelectedClientId() async {
     return await _storage.read(AppKeys.clientId);
+  }
+
+  Future<String?> getSelectedOrganizationName() async {
+    return await _storage.read(AppKeys.organizationName);
   }
 }

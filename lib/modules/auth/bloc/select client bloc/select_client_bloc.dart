@@ -50,7 +50,7 @@ class SelectClientBloc extends Bloc<SelectClientEvent, SelectClientState> {
 
     on<SelectOrganization>((event, emit) async {
       try {
-        await repository.saveClientId(event.organization.clientId);
+        await repository.saveClientId(event.organization.clientId, event.organization.organizationName);
         print("🏢 SELECTED CLIENT ID: ${event.organization.clientId}");
         emit(SelectClientSuccess());
       } catch (e) {

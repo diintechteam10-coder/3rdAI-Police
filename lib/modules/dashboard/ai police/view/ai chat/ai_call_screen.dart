@@ -146,21 +146,21 @@ class _CallScreenState extends State<AiCallScreen>
           String phaseTimerStr = "";
 
           if (state is AiVoiceActive) {
-            phase = state.isSpeaking ? CallPhase.speaking : CallPhase.listening;
-
-            // Check for Thinking phase (Latency)
-            if (state.aiThinkingStartedAt != null && !state.isSpeaking) {
+            if (state.isSpeaking) {
+              phase = CallPhase.speaking;
+            } else if (state.isThinking) {
               phase = CallPhase.thinking;
+            } else if (state.isUserSpeaking) {
+              phase = CallPhase.listening;
+            } else {
+              phase = CallPhase.listening; // Default when active
             }
 
             // Calculate Phase Timer
             DateTime? startTime;
-            if (phase == CallPhase.listening)
-              startTime = state.userStartedSpeakingAt;
-            if (phase == CallPhase.thinking)
-              startTime = state.aiThinkingStartedAt;
-            if (phase == CallPhase.speaking)
-              startTime = state.aiSpeakingStartedAt;
+            if (phase == CallPhase.listening) startTime = state.userStartedSpeakingAt;
+            if (phase == CallPhase.thinking) startTime = state.aiThinkingStartedAt;
+            if (phase == CallPhase.speaking) startTime = state.aiSpeakingStartedAt;
 
             if (startTime != null) {
               final diff = DateTime.now().difference(startTime);

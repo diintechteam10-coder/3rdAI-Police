@@ -6,4 +6,5 @@ class AppKeys {
   static const String agentId = "agent_id";
   static const String agentName = "agent_name";
   static const String agentFirstMessage = "agent_first_message";
+  static const String organizationName = "organization_name";
 }

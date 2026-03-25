@@ -269,7 +269,7 @@ class AiVoiceBloc extends Bloc<AiVoiceEvent, AiVoiceState> {
       
       final current = state;
       if (current is AiVoiceActive) {
-        // Trigger thinking phase timestamp locally if UserMessageEvent is delayed
+        // Trigger thinking phase locally
         add(InternalSocketEvent(UserMessageEvent(text: ''))); 
       }
     };
@@ -346,6 +346,9 @@ class AiVoiceBloc extends Bloc<AiVoiceEvent, AiVoiceState> {
 
       emit(s.copyWith(
         messages: updated,
+        isUserSpeaking: true,
+        isThinking: false,
+        isSpeaking: false,
         userStartedSpeakingAt: userStartTime,
         aiThinkingStartedAt: null, 
         aiSpeakingStartedAt: null,
@@ -365,6 +368,8 @@ class AiVoiceBloc extends Bloc<AiVoiceEvent, AiVoiceState> {
 
       emit(s.copyWith(
         messages: updated,
+        isUserSpeaking: false,
+        isThinking: true,
         aiThinkingStartedAt: s.aiThinkingStartedAt ?? DateTime.now(),
       ));
     }
@@ -383,6 +388,8 @@ class AiVoiceBloc extends Bloc<AiVoiceEvent, AiVoiceState> {
 
       emit(s.copyWith(
         messages: updated,
+        isThinking: false,
+        isSpeaking: true,
         aiThinkingStartedAt: null, // Done thinking
         aiSpeakingStartedAt: aiStartTime,
       ));
@@ -392,22 +399,29 @@ class AiVoiceBloc extends Bloc<AiVoiceEvent, AiVoiceState> {
       _audioService.addAudioChunk(voiceEvent.audio);
       if (s.aiSpeakingStartedAt == null) {
         emit(s.copyWith(
+          isThinking: false,
+          isSpeaking: true,
           aiThinkingStartedAt: null,
           aiSpeakingStartedAt: DateTime.now(),
         ));
       }
     }
 
+    else if (voiceEvent is SocketClosedEvent) {
+      print("📡 WebSocket closed. Stopping session...");
+      add(StopCallEvent());
+    }
+
     /// 🔥 LOOP
     else if (voiceEvent is AudioCompleteEvent) {
       await _audioService.stopRecording();
 
-      emit(s.copyWith(isSpeaking: true));
+      emit(s.copyWith(isSpeaking: true, isThinking: false));
 
       await _audioService.playBufferedAudio();
       _audioService.clearAudioBuffer();
 
-      emit(s.copyWith(isSpeaking: false));
+      emit(s.copyWith(isSpeaking: false, isUserSpeaking: true));
 
       await _audioService.startRecording((chunk) {
         final current = state;

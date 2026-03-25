@@ -5,6 +5,8 @@ import '../../profile/bloc/profile_bloc.dart';
 import '../../profile/bloc/profile_event.dart';
 import '../../profile/bloc/profile_state.dart';
 import '../../profile/repository/get_profile_repo.dart';
+import '../../../../core/services/secure_storage_service.dart';
+import '../../../../core/constants/app_keys.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -63,8 +65,30 @@ class HomeScreen extends StatelessWidget {
     );
   }
 }
-class HeaderSectionWidget extends StatelessWidget {
+class HeaderSectionWidget extends StatefulWidget {
   const HeaderSectionWidget({super.key});
+
+  @override
+  State<HeaderSectionWidget> createState() => _HeaderSectionWidgetState();
+}
+
+class _HeaderSectionWidgetState extends State<HeaderSectionWidget> {
+  String? _orgName;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadOrgName();
+  }
+
+  Future<void> _loadOrgName() async {
+    final org = await SecureStorageService.instance.read(AppKeys.organizationName);
+    if (mounted) {
+      setState(() {
+        _orgName = org;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -98,25 +122,11 @@ class HeaderSectionWidget extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        name,
+                        _orgName ?? name,
                         style: const TextStyle(
                           color: Colors.white,
                           fontWeight: FontWeight.bold,
                           fontSize: 18,
-                        ),
-                      ),
-                      Text(
-                        'ID: $id',
-                        style: const TextStyle(
-                          color: Colors.white70,
-                          fontSize: 13,
-                        ),
-                      ),
-                      Text(
-                        designation,
-                        style: const TextStyle(
-                          color: Colors.white70,
-                          fontSize: 13,
                         ),
                       ),
                     ],
@@ -166,6 +176,7 @@ class HeaderSectionWidget extends StatelessWidget {
                           style: const TextStyle(
                               color: Colors.white70, fontSize: 13),
                         ),
+                    
                       ],
                     ),
                   ),

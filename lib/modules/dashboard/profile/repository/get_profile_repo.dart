@@ -17,7 +17,7 @@ class GetProfileRepository {
   }
 
   Future<PartnerProfileResponse> updateProfile(Map<String, dynamic> data) async {
-    final response = await _dio.patch(
+    final response = await _dio.put(
       ApiConstants.getProfile,
       data: data,
       options: Options(extra: {'skipClientId': true}),
